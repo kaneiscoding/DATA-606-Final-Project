@@ -15,8 +15,9 @@ The results of this project will provide valuable insights for coaches and playe
 
 ### Requirements
 In order to run the code in this repository, you will need to have the following software installed:
-- R, RStudio
+- R, RStudio, Python3
 - Required R packages: 
+- Required Python3 packages:
 
 ### Usage
 1. Clone or download the repository
