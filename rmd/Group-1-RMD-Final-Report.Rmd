@@ -1,0 +1,85 @@
+---
+title: "Classification of Spotify Data"
+subtitle: "DATA 606 - W2023 Final Project"
+author: "Kane Smith, Rodrigo Rosales Alvarez, Arhur Trim, Jordan Keelan, Scott Bennett"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  pdf_document:
+    extra_dependencies:
+    - bbm
+    - xcolor
+---
+
+\newpage
+\tableofcontents
+\pagebreak
+
+```{r setup, include=FALSE}
+# Set R Chunk options
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set the number of significant digits
+options(scipen=50, digits=4)
+```
+
+
+# 1 Introduction
+
+## 1.1 Background
+
+## 1.2 Objective & Topic Importance
+
+# 2 Methodology
+
+## 2.1 Software Used
+
+## 2.2 Data Source
+
+## 2.3 Summary of Variables
+
+## 2.4 Data Cleaning
+
+# 3 Genre Classification
+
+## 3.1 LDA
+
+### 3.1.1 Assumptions
+
+## 3.2 Classification Tree
+
+### 3.2.1 Assumptions
+
+## 3.4 Summary of Findings
+
+# 4 Classification - Hit or not?
+
+## 4.1 Logistic Regression
+
+### 4.1.1 Assumptions
+
+## 4.2 Classification Tree
+
+### 4.2.1 Assumptions
+
+## 4.3 Summary of Findings
+
+# 5 Conclusion
+
+# 6 References
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
