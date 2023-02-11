@@ -1,0 +1,96 @@
+---
+title: "Jordans Doc"
+author: "Jordan Keelan"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=8, fig.height=6) 
+```
+
+```{r setup, include=FALSE}
+# Set R Chunk options
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set the number of significant digits
+options(scipen=50, digits=4)
+
+library(dplyr)
+library(ggplot2)
+library(tree)
+library(MASS)
+library(ISLR)
+library(car)
+library(sampling)
+library(caret)
+library(GGally)
+library(AppliedPredictiveModeling)
+```
+
+```{r}
+artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
+tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
+
+```
+
+```{r}
+head(artists_df)
+# head(tracks_df)
+
+#glimpse(artists_df)
+
+popular_df <- tracks_df %>%
+                    filter(popularity > 1)
+
+mean(tracks_df$popularity)
+mean(popular_df$popularity)
+                    
+
+ggplot(data=tracks_df, aes(x=popularity)) + geom_histogram()
+ggplot(data=artists_df, aes(x=popularity)) + geom_histogram()
+
+tracks_df <- tracks_df %>%
+              mutate(num_artists = length(as.list(strsplit(artists, ","))))
+
+```
+
+
+
+
+```{r}
+popular_labels <- popular_df[, c("id", "name", "artists", "id_artists", "release_date")]
+popular_factors <- popular_df[, c("explicit", "key", "mode", "time_signature")]
+popular_numeric <- popular_df[, c("popularity","duration_ms","danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo")]
+popular_scaled <- scale(popular_numeric)
+popular_factors <- lapply(popular_factors,factor)
+popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
+popular_df2
+```
+
+```{r}
+ggplot(data=popular_df2, aes(x=popularity)) + geom_histogram()
+ggplot(data=popular_df2, aes(x=popularity)) + geom_histogram()
+```
+
+### Correlation Matrix
+
+```{r}
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+
+# Calculate the correlation matrix
+cor_matrix <- cor(popular_numeric)
+
+# plot the correlation
+ggcorrplot(cor_matrix,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE,
+           show.legend = FALSE
+           )
+```
+
+
+
