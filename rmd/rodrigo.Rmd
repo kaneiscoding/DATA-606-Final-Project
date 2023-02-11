@@ -126,6 +126,10 @@ print(tree_model)
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
 
+
+# Convert the outcome variable to a factor
+popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
+
 #popular_df$coded = rep("no hit", nrow(popular_df)) # default
 #popular_df$coded[popular_df$popularity > 74] = "hit"
 ```
@@ -159,7 +163,8 @@ k_fold
 ctrl <- trainControl(method = "cv", number = 10)
 
 #fit a regression model and use k-fold CV to evaluate performance
-lr_kfold_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = lr_train, method = "glm", trControl = ctrl)
+lr_kfold_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = lr_train, method = "glm", trControl = ctrl, family="binomial")
+
 print(lr_kfold_model)
 ```
 

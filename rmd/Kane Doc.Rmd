@@ -70,6 +70,8 @@ tracks_df <- tracks_df %>%
 
 
 ```
+
+
 ```{r}
 popular_df <- popular_df %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df$popularity, c(.75))[1], 1, 0))
 
@@ -81,9 +83,7 @@ popular_factors <- lapply(popular_factors,factor)
 popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
 popular_df2
 ```
-```{r}
 
-```
 
 ```{r}
 ## VIF
@@ -101,6 +101,9 @@ ctrl <- trainControl(method = "cv", number = 10)
 
 #fit a regression model and use k-fold CV to evaluate performance
 model2 <- train(popularity_coded~duration_ms+explicit+ danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
+```
+```{r}
+print(model2)
 ```
 
 
