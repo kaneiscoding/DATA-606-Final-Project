@@ -23,10 +23,13 @@ options(scipen=50, digits=4)
 
 library(dplyr)
 library(ggplot2)
-library(sampling) # draw random samples using different sampling schemes
-library(tree) # tree 
-library(car) # VIF
+library(tree)
+library(MASS)
+library(ISLR)
+library(car)
+library(sampling)
 library(caret)
+library(AppliedPredictiveModeling)
 ```
 
 
@@ -68,6 +71,13 @@ popular_df <- tracks_df %>%
 #tracks_df <- tracks_df %>%
 #              mutate(num_artists = length(as.list(strsplit(artists, ","))))
 
+popular_labels <- popular_df[, c("id", "name", "artists", "id_artists", "release_date")]
+popular_factors <- popular_df[, c("explicit", "key", "mode", "time_signature")]
+popular_numeric <- popular_df[, c("duration_ms","popularity", "danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo")]
+popular_scaled <- scale(popular_numeric)
+popular_factors <- lapply(popular_factors,factor)
+popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
+colnames(popular_df2)
 ```
 
 ## 2.4 Data Cleaning
@@ -82,12 +92,12 @@ popular_df <- tracks_df %>%
 ```{r}
 set.seed(1)
 
-N <- nrow(popular_df)
+N <- nrow(popular_df2)
 n <- N * 0.8
 
 idx = sample(1:N, size=n, replace = FALSE)
-train = popular_df[idx,]
-test = popular_df[-idx,]
+train = popular_df2[idx,]
+test = popular_df2[-idx,]
 ```
 
 ```{r}
@@ -114,13 +124,44 @@ print(tree_model)
 
 # 4 Classification - Hit or not?
 ```{r}
-popular_df <- popular_df %>% mutate(popularity_coded = ifelse(popularity > 74, 1, 0))
+popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
+
+#popular_df$coded = rep("no hit", nrow(popular_df)) # default
+#popular_df$coded[popular_df$popularity > 74] = "hit"
 ```
 
 ```{r}
-
+quantile(popular_df2$popularity, c(.75))[1] + 1
 ```
 
+
+```{r}
+print(table(popular_df2$popularity_coded)) # 0=526964 , 1=2994
+print(unique(popular_df2$popularity_coded))
+```
+
+```{r}
+idx_lr = sampling:::strata(popular_df2, stratanames = c("popularity_coded"), size=c(400977/8,128981/8), method="srswor")
+
+lr_train = popular_df2[idx_lr$ID_unit,]
+lr_test = popular_df2[-idx_lr$ID_unit,]
+
+lr_fit <- glm(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = lr_train, family=binomial)
+summary(lr_fit)
+```
+```{r}
+lr_results <- predict(lr_fit, lr_test, type="response")
+m = table(lr_results, lr_test$popularity_coded) # comparing the actual vs predicted values
+(m[1,2] + m[2,1]) / nrow(lr_test)
+```
+k_fold
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+#fit a regression model and use k-fold CV to evaluate performance
+lr_kfold_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = lr_train, method = "glm", trControl = ctrl)
+print(lr_kfold_model)
+```
 
 
 ## 4.1 Logistic Regression
