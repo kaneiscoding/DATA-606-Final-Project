@@ -114,6 +114,13 @@ ggcorrplot(cor_matrix,
 
 ## 3.1 LDA
 ```{r}
+popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
+
+# Convert the outcome variable to a factor
+popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
+```
+
+```{r}
 #fit a regression model and use k-fold CV to evaluate performance
 lda_model <- train(popularity_coded~duration_ms+explicit+ danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
 
@@ -154,13 +161,6 @@ print(tree_model_reg)
 ## 3.4 Summary of Findings
 
 # 4 Classification - Hit or not?
-
-```{r}
-popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
-
-# Convert the outcome variable to a factor
-popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
-```
 
 ## 4.1 Logistic Regression
 
