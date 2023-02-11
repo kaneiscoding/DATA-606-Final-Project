@@ -112,19 +112,13 @@ print(tree_model_reg)
 ```
 
 
-## 3.2 Classification Tree
-```{r}
-ctrl <- trainControl(method = "cv", number = 10)
-
-tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
-print(tree_model_class)
-```
 
 ### 3.2.1 Assumptions
 
 ## 3.4 Summary of Findings
 
 # 4 Classification - Hit or not?
+
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
 
@@ -132,6 +126,7 @@ popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= qu
 popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
 ```
 
+## 4.1 Logistic Regression
 
 ```{r}
 ctrl <- trainControl(method = "cv", number = 10)
@@ -140,6 +135,15 @@ ctrl <- trainControl(method = "cv", number = 10)
 lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = lr_train, method = "glm", trControl = ctrl, family="binomial")
 
 print(lr_model)
+```
+
+## 4.2 Classification Tree
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
+
+print(tree_model_class)
 ```
 
 ## 4.1 Logistic Regression
