@@ -103,14 +103,22 @@ nvcTest(model_fit)
 
 
 
+## 3.2 Regression Tree
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+tree_model_reg <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
+print(tree_model_reg)
+```
+
+
 ## 3.2 Classification Tree
 ```{r}
 ctrl <- trainControl(method = "cv", number = 10)
 
-tree_model <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
-print(tree_model)
+tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
+print(tree_model_class)
 ```
-
 
 ### 3.2.1 Assumptions
 
