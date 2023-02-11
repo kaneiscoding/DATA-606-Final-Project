@@ -1,0 +1,156 @@
+---
+title: "Classification of Spotify Data"
+subtitle: "DATA 606 - W2023 Final Project"
+author: "Kane Smith, Rodrigo Rosales Alvarez, Arhur Trim, Jordan Keelan, Scott Bennett"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  pdf_document:
+    extra_dependencies:
+    - bbm
+    - xcolor
+---
+
+\newpage
+\tableofcontents
+\pagebreak
+
+```{r setup, include=FALSE}
+# Set R Chunk options
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set the number of significant digits
+options(scipen=50, digits=4)
+
+library(dplyr)
+library(ggplot2)
+library(tree)
+library(MASS)
+library(ISLR)
+library(car)
+library(sampling)
+library(caret)
+library(AppliedPredictiveModeling)
+```
+
+
+# 1 Introduction
+
+## 1.1 Background
+
+## 1.2 Objective & Topic Importance
+
+# 2 Methodology
+
+## 2.1 Software Used
+
+## 2.2 Data Source
+
+## 2.3 Summary of Variables
+
+```{r}
+artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
+tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
+
+```
+
+```{r}
+head(artists_df)
+# head(tracks_df)
+
+# glimpse(artists_df)
+
+popular_df <- tracks_df %>%
+                    filter(popularity > 1)
+
+mean(tracks_df$popularity)
+mean(popular_df$popularity)
+                    
+
+ggplot(data=tracks_df, aes(x=popularity)) + geom_histogram()
+ggplot(data=artists_df, aes(x=popularity)) + geom_histogram()
+
+tracks_df <- tracks_df %>%
+              mutate(num_artists = length(as.list(strsplit(artists, ","))))
+
+```
+```{r}
+popular_df
+```
+```{r}
+popular_labels <- popular_df[, c("id", "name", "artists", "id_artists", "release_date")]
+popular_factors <- popular_df[, c("explicit", "key", "mode", "time_signature")]
+popular_numeric <- popular_df[, c("danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo")]
+popular_scaled <- scale(popular_numeric)
+popular_factors <- lapply(popular_factors,factor)
+popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
+popular_df2
+```
+
+```{r}
+## VIF
+model_fit<-glm(popularity~duration_ms+factor(explicit)+ danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo+factor(time_signature), data=popular_df)
+
+vif(model_fit)
+
+# Influential Outliers 
+popular_df[cooks.distance(model_fit)>1,]
+```
+
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+#fit a regression model and use k-fold CV to evaluate performance
+model <- train(popularity~duration_ms+factor(explicit)+ danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo+factor(time_signature), data = popular_df, method = "rpart", trControl = ctrl)
+```
+
+
+
+## 2.4 Data Cleaning
+
+# 3 Genre Classification
+
+## 3.1 LDA
+
+### 3.1.1 Assumptions
+
+## 3.2 Classification Tree
+
+### 3.2.1 Assumptions
+
+## 3.4 Summary of Findings
+
+# 4 Classification - Hit or not?
+
+
+
+
+## 4.1 Logistic Regression
+
+### 4.1.1 Assumptions
+
+## 4.2 Classification Tree
+
+### 4.2.1 Assumptions
+
+## 4.3 Summary of Findings
+
+# 5 Conclusion
+
+# 6 References
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
