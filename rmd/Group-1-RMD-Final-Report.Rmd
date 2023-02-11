@@ -20,6 +20,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Set the number of significant digits
 options(scipen=50, digits=4)
+
+library(dplyr)
+library(ggplot2)
+libr
+
 ```
 
 
@@ -37,6 +42,41 @@ options(scipen=50, digits=4)
 
 ## 2.3 Summary of Variables
 
+```{r}
+artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
+tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
+
+```
+
+```{r}
+head(artists_df)
+# head(tracks_df)
+
+# glimpse(artists_df)
+
+popular_df <- tracks_df %>%
+                    filter(popularity > 1)
+
+mean(tracks_df$popularity)
+mean(popular_df$popularity)
+                    
+
+ggplot(data=tracks_df, aes(x=popularity)) + geom_histogram()
+ggplot(data=artists_df, aes(x=popularity)) + geom_histogram()
+
+tracks_df <- tracks_df %>%
+              mutate(num_artists = length(as.list(strsplit(artists, ","))))
+
+```
+
+```{r}
+x = "['Dick Haymes', 'Victor Young', 'His Orchestra']"
+
+str_replace()
+```
+
+
+
 ## 2.4 Data Cleaning
 
 # 3 Genre Classification
@@ -52,6 +92,9 @@ options(scipen=50, digits=4)
 ## 3.4 Summary of Findings
 
 # 4 Classification - Hit or not?
+
+
+
 
 ## 4.1 Logistic Regression
 
