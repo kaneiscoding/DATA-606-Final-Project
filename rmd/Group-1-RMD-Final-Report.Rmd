@@ -17,6 +17,7 @@ output:
 ```{r setup, include=FALSE}
 # Set R Chunk options
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4)
 
 # Set the number of significant digits
 options(scipen=50, digits=4)
@@ -30,6 +31,7 @@ library(car)
 library(sampling)
 library(caret)
 library(AppliedPredictiveModeling)
+library(gridExtra)
 ```
 
 
@@ -56,13 +58,26 @@ tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
 ## 2.4 Data Cleaning
 ```{r}
 head(artists_df)
+head(tracks_df)
 
-popular_df <- tracks_df %>% filter(popularity > 1)
-                    
-ggplot(data=tracks_df, aes(x=popularity)) + geom_histogram()
-ggplot(data=artists_df, aes(x=popularity)) + geom_histogram()
+tracks_pop <- ggplot(data=tracks_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+artists_pop <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
+
+tracks_pop
+artists_pop
 ```
 
+```{r}
+# Filter out tracks with popularity less than 1
+popular_df <- tracks_df %>% filter(popularity > 1)
+
+# Visualize filtered tracks popularity histogram 
+tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+#artists_pop_filtered <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
+
+tracks_pop_filtered
+#artists_pop_filtered
+```
 
 ```{r}
 # normalize Data
@@ -73,6 +88,27 @@ popular_scaled <- scale(popular_numeric)
 popular_factors <- lapply(popular_factors,factor)
 popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
 ```
+
+## 2.5 Data Exploration
+
+### Correlation Matrix
+
+```{r}
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+
+# Calculate the correlation matrix
+cor_matrix <- cor(popular_numeric)
+
+# plot the correlation
+ggcorrplot(cor_matrix,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE,
+           show.legend = FALSE
+           )
+```
+
 
 # 3 Genre Classification
 
