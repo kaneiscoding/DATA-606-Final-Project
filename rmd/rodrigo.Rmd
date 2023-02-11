@@ -1,0 +1,155 @@
+---
+title: "Classification of Spotify Data"
+subtitle: "DATA 606 - W2023 Final Project"
+author: "Kane Smith, Rodrigo Rosales Alvarez, Arhur Trim, Jordan Keelan, Scott Bennett"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  pdf_document:
+    extra_dependencies:
+    - bbm
+    - xcolor
+---
+
+\newpage
+\tableofcontents
+\pagebreak
+
+```{r setup, include=FALSE}
+# Set R Chunk options
+knitr::opts_chunk$set(echo = TRUE)
+
+# Set the number of significant digits
+options(scipen=50, digits=4)
+
+library(dplyr)
+library(ggplot2)
+library(sampling) # draw random samples using different sampling schemes
+library(tree) # tree 
+library(car) # VIF
+library(caret)
+```
+
+
+# 1 Introduction
+
+## 1.1 Background
+
+## 1.2 Objective & Topic Importance
+
+# 2 Methodology
+
+## 2.1 Software Used
+
+## 2.2 Data Source
+
+## 2.3 Summary of Variables
+
+```{r}
+artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
+tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
+```
+
+```{r}
+#head(artists_df)
+# head(tracks_df)
+
+# glimpse(artists_df)
+
+popular_df <- tracks_df %>%
+                    filter(popularity > 1)
+
+#mean(tracks_df$popularity)
+#mean(popular_df$popularity)
+                    
+
+#ggplot(data=tracks_df, aes(x=popularity)) + geom_histogram()
+#ggplot(data=artists_df, aes(x=popularity)) + geom_histogram()
+
+#tracks_df <- tracks_df %>%
+#              mutate(num_artists = length(as.list(strsplit(artists, ","))))
+
+```
+
+## 2.4 Data Cleaning
+
+# 3 Genre Classification
+
+## 3.1 LDA
+
+### 3.1.1 Assumptions
+
+## 3.2 Classification Tree
+```{r}
+set.seed(1)
+
+N <- nrow(popular_df)
+n <- N * 0.8
+
+idx = sample(1:N, size=n, replace = FALSE)
+train = popular_df[idx,]
+test = popular_df[-idx,]
+```
+
+```{r}
+popularity_tree_fit <- tree(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=train)
+summary(popularity_tree_fit)
+```
+```{r}
+popularity_tree_predict <- predict(popularity_tree_fit, test)
+
+sqrt(mean((popularity_tree_predict - test$popularity)^2)) 
+```
+
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+tree_model <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df, trControl = ctrl, method = "rpart")
+print(tree_model)
+```
+
+
+### 3.2.1 Assumptions
+
+## 3.4 Summary of Findings
+
+# 4 Classification - Hit or not?
+```{r}
+popular_df <- popular_df %>% mutate(popularity_coded = ifelse(popularity > 74, 1, 0))
+```
+
+```{r}
+
+```
+
+
+
+## 4.1 Logistic Regression
+
+### 4.1.1 Assumptions
+
+## 4.2 Classification Tree
+
+### 4.2.1 Assumptions
+
+## 4.3 Summary of Findings
+
+# 5 Conclusion
+
+# 6 References
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
