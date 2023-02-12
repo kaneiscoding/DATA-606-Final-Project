@@ -71,15 +71,6 @@ artists_pop
 # Filter out tracks with popularity less than 1
 popular_df <- tracks_df %>% filter(popularity > 1)
 
-# Visualize filtered tracks popularity histogram 
-tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
-#artists_pop_filtered <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
-
-tracks_pop_filtered
-#artists_pop_filtered
-```
-
-```{r}
 # normalize Data
 popular_labels <- popular_df[, c("id", "name", "artists", "id_artists", "release_date")]
 popular_factors <- popular_df[, c("explicit", "key", "mode", "time_signature")]
@@ -87,6 +78,17 @@ popular_numeric <- popular_df[, c("duration_ms","popularity", "danceability", "e
 popular_scaled <- scale(popular_numeric)
 popular_factors <- lapply(popular_factors,factor)
 popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
+```
+
+```{r}
+# Visualize filtered tracks popularity histogram 
+tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+#artists_pop_filtered <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
+tracks_pop_scaled <- ggplot(data=popular_df2, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+
+tracks_pop_filtered
+tracks_pop_scaled
+#artists_pop_filtered
 ```
 
 ## 2.5 Data Exploration
@@ -110,7 +112,7 @@ ggcorrplot(cor_matrix,
 ```
 
 
-# 3 Classification - Hit or not?
+# 3 Genre Classification
 
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
@@ -135,7 +137,7 @@ print(lda_model)
 
 ```{r}
 ## VIF
-model_fit<-glm(popularity~duration_ms+factor(explicit)+ danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo+factor(time_signature), data=popular_df2)
+model_fit<-lm(popularity~duration_ms+factor(explicit)+ danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo+factor(time_signature), data=popular_df2)
 
 vif(model_fit)
 
@@ -143,16 +145,16 @@ vif(model_fit)
 popular_df[cooks.distance(model_fit)>1,]
 
 # Constant Variance
-nvcTest(model_fit)
+ncvTest(model_fit)
 ```
 
 ## 4.1 Logistic Regression
 
 ```{r}
 #fit a regression model and use k-fold CV to evaluate performance
-lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = lr_train, method = "glm", trControl = ctrl, family="binomial")
+lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, method = "glm", trControl = ctrl, family="binomial")
 
-print(lr_model)
+summary(lr_model)
 ```
 
 ## 4.2 Classification Tree
