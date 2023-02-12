@@ -112,27 +112,25 @@ ggcorrplot(cor_matrix,
 ```
 
 
-
 # 3 Genre Classification
 
-## 3.1 LDA
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
 
 # Convert the outcome variable to a factor
 popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
 
-# Train object for k-fold corss validation
+# control object for k-fold cross validation
 ctrl <- trainControl(method = "cv", number = 10)
 ```
 
+## 3.1 LDA
 ```{r}
 #fit a regression model and use k-fold CV to evaluate performance
 lda_model <- train(popularity_coded~duration_ms+explicit+ danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
 
 print(lda_model)
 ```
-
 
 
 ### 3.1.1 Assumptions
@@ -149,8 +147,24 @@ popular_df[cooks.distance(model_fit)>1,]
 # Constant Variance
 ncvTest(model_fit)
 ```
-p-value very low, implies rejection of the null and non-constant variance.
 
+## 4.1 Logistic Regression
+
+```{r}
+#fit a regression model and use k-fold CV to evaluate performance
+lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, method = "glm", trControl = ctrl, family="binomial")
+
+summary(lr_model)
+```
+
+## 4.2 Classification Tree
+```{r}
+tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
+
+print(tree_model_class)
+```
+
+# Getting the Popularity index from a song
 
 ## 3.2 Regression Tree
 ```{r}
@@ -162,29 +176,6 @@ print(tree_model_reg)
 
 ## 3.4 Summary of Findings
 
-# 4 Classification - Hit or not?
-
-## 4.1 Logistic Regression
-
-```{r}
-ctrl <- trainControl(method = "cv", number = 10)
-
-#fit a regression model and use k-fold CV to evaluate performance
-lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, method = "glm", trControl = ctrl, family="binomial")
-
-summary(lr_model)
-```
-
-## 4.2 Classification Tree
-```{r}
-ctrl <- trainControl(method = "cv", number = 10)
-
-tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
-
-print(tree_model_class)
-```
-
-### 4.2.1 Assumptions
 
 ## 4.3 Summary of Findings
 
