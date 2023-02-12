@@ -96,6 +96,95 @@ tracks_pop_scaled
 ### Correlation Matrix
 
 ```{r}
+#Preliminary Analysis
+library(readr)
+artists_df <- read.csv("~/Data606/Project/artists.csv")
+tracks_df <- read.csv("~/Data606/Project/tracks.csv")
+```
+```{r}
+
+```
+ 
+```{r}
+head(tracks_df)
+dim(tracks_df)
+```
+ 
+```{r}
+tracks_df$year <- eval(substr(tracks_df$release_date, 1,4))
+```
+ 
+```{r}
+test_str <- "1922-02-22"
+test_substr <- substr(test_str, 1,4)
+test_substr
+```
+```{r}
+tracks_df$decade <- eval(substr(tracks_df$release_date, 1,3))
+```
+
+
+```{r}
+head(tracks_df)
+```
+
+```{r}
+library(ggplot2)
+ggplot(data = tracks_df, mapping = aes(x = year)) + geom_bar()
+
+ggplot(tracks_df, aes(x = factor(year), y = popularity)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+ggplot(tracks_df, aes(x = factor(decade), y = popularity)) + 
+  geom_bar(stat = "summary", fun = "mean")
+#+ guide_axis()
+```
+
+```{r}
+ggplot(tracks_df, aes(x = factor(decade), y = loudness)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+ggplot(tracks_df, aes(x = factor(decade), y = energy)) + 
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+```{r}
+tracks_190 <- filter(tracks_df, filter = tracks_df$decade == "190")
+```
+
+```{r}
+dim(tracks_190)
+```
+
+```{r}
+tracks_df[478628,]
+```
+
+```{r}
+tracks_clean <- tracks_df[-478628,]
+```
+
+```{r}
+plt2 <- ggplot(tracks_clean, aes(x = factor(decade), y = acousticness)) + 
+  geom_bar(stat = "summary", fun = "mean") 
+
+plt3 <- ggplot(tracks_clean, aes(x = factor(decade), y = energy)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+plt1 <- ggplot(tracks_clean, aes(x = factor(decade), y = popularity)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+plt4 <- ggplot(tracks_clean, aes(x = factor(decade), y = duration_ms)) + 
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+```{r}
+library(gridExtra)
+grid.arrange(plt1, plt2, plt3, plt4, top = "Variation by Decade", ncol = 2)
+```
+
+
+```{r}
 #install.packages("ggcorrplot")
 library(ggcorrplot)
 
