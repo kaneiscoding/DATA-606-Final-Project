@@ -31,6 +31,8 @@ library(sampling)
 library(caret)
 library(AppliedPredictiveModeling)
 library(gridExtra)
+library(ggcorrplot)
+library(QuantPsyc)
 ```
 
 
@@ -38,26 +40,50 @@ library(gridExtra)
 
 ## 1.1 Background
 
+Spotify is the world’s most popular subscription service for audio streaming. Spotify claims 489 million users, of which 205 million users are Spotify Premium subscribers(1). Spotify has an extensive library of music tracks and gathers data about the music in order to better recommend songs to users, and makes this data available through a web API(2). By analyzing this data, we hope to gain insights into how characteristics of different songs and the artists who created them affect the popularity of the songs. We also aim to explore other trends and relationships within the data, such as whether we can predict the genre of a song based on characteristics such as loudness and musical key. This analysis could potentially be used to identify what factors make songs popular and help artists create music that will be commercially successful (if that is their goal). It may also expose other findings that would be interesting to a general audience of music consumers.
+
 ## 1.2 Objective & Topic Importance
 
-# 2 Methodology
+## 1.3 Data Source
 
-## 2.1 Software Used
+For this project, we used a Kaggle dataset that offers consolidated data from the Spotify web APIs(3). The dataset is structured into two data tables, provided as CSV files. These two data tables are “Tracks” and “Artists”
 
-## 2.2 Data Source
+The "Tracks" “csv” contains information for approximately 600,000 musical tracks available on Spotify. Features include "popularity" as well as a multitude of attributes to describe the character of the music itself i.e, "loudness" score and "danceability" score. The "Artists" csv contains additional data, specifically about the artist such as the list of genre's associated with that artist.
 
-## 2.3 Summary of Variables
+Usage of the dataset is governed by the Community Data License Agreement, which grants: "... a worldwide, non-exclusive, irrevocable (except as provided in Section 5) right to: (a) Use Data; and (b) Publish Data." (4)
 
-```{r}
+## 1.4 Summary of Variables
+
+One of the key variables of interest/response variables for our project is *popularity*. This is a score given to a track from 0-100, with the most popular track being given a score of 100. For some parts of the analysis, the *popularity* variable was used to classify each song as a "hit" or not. For the purposes of this project, a hit was considered a track in the upper quartile of *popularity*.
+
+The independent variables available in the "tracks" data are:
+
+1.*duration_ms* - <integer> the length of the track in ms
+2. *explicit* - <boolean> explicit lyrics 
+3. *artists* - <list> artist names
+4. *danceability* - <dbl> score for how suited a track is for dancing, 0.0-1.0. 
+5. *energy* - <dbl> score for how energetic a track is perceived, 0.0-1.0. 
+6. *key* - <int> maps Pitch class notation (E.g. 0 = C, 1 = C sharp/D flat, 2 = D, and so on.)
+7. *loudness* - <dbl> decibel loudness of the track range from -60 to 0 dB
+8. *mode* - <boolean> modality of the track (0 is minor, 1 is major)
+9. *speechiness* - <dbl> score for how speech-like a track is, 0.0-1.0. Values close to one indicate something like a podcast (high speechiness).
+10. *acousticness* - <dbl> range of whether a track is acoustic (0.0-1.0)
+11. *instrumentalness* - <dbl> range of  of whether a track is instrumental (0.0-1.0)
+12. *liveness* - <dbl> range representing audience sounds in the track (0.0-1.0)
+13. *valence* - <dbl> represents how 'happy' a track is (0.0-1.0)
+14. *tempo* - <dbl> the temp of the track in beats per minute
+15. *time_signature* - <dbl> time signature of the track 3-7 (3 represents 3/4 time etc.)
+
+```{r import csv}
 artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
 tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
 ```
 
 
 ## 2.4 Data Cleaning
-```{r}
-head(artists_df)
-head(tracks_df)
+```{r histograms}
+# head(artists_df) somthing here has characters that latex cant print
+# head(tracks_df)
 
 tracks_pop <- ggplot(data=tracks_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
 artists_pop <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
@@ -66,7 +92,7 @@ tracks_pop
 artists_pop
 ```
 
-```{r}
+```{r filter and normalize}
 # Filter out tracks with popularity less than 1
 popular_df <- tracks_df %>% filter(popularity > 1)
 
@@ -79,7 +105,7 @@ popular_factors <- lapply(popular_factors,factor)
 popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
 ```
 
-```{r}
+```{r filtered histogram}
 # Visualize filtered tracks popularity histogram 
 tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
 #artists_pop_filtered <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
@@ -93,7 +119,6 @@ tracks_pop_scaled
 ## 2.5 Data Exploration
 
 ### Correlation Matrix
-
  
 ```{r}
 dim(tracks_df)
@@ -134,11 +159,11 @@ ggplot(tracks_df, aes(x = factor(decade), y = energy)) +
 ```
 
 ```{r}
-tracks_190 <- filter(tracks_df, filter = tracks_df$decade == "190")
+# tracks_190 <- filter(tracks_df, filter = tracks_df$decade == "190") this line did not knit
 ```
 
 ```{r}
-dim(tracks_190)
+# dim(tracks_190)
 ```
 
 ```{r}
@@ -149,7 +174,7 @@ tracks_df[478628,]
 tracks_clean <- tracks_df[-478628,]
 ```
 
-```{r}
+```{r means by decade}
 plt2 <- ggplot(tracks_clean, aes(x = factor(decade), y = acousticness)) + 
   geom_bar(stat = "summary", fun = "mean") 
 
@@ -168,7 +193,7 @@ grid.arrange(plt1, plt2, plt3, plt4, top = "Variation by Decade", ncol = 2)
 ```
 
 
-```{r}
+```{r correlation plot}
 
 # Calculate the correlation matrix
 cor_matrix <- cor(popular_numeric)
@@ -181,6 +206,43 @@ ggcorrplot(cor_matrix,
            show.legend = FALSE
            )
 ```
+
+### Popularity and Hit Boxplots
+
+To begin investigating the idea that *popularity* could be related to features which describe the character of the music, it would be useful to do some preliminary visual exploration of those features. 
+
+Two of the available "factor" variables (*key* and *explicit*) can be analyzed using boxplots:
+
+```{r boxplots of factors}
+box1 <- ggplot(data = tracks_df, aes(x=factor(key), y=popularity, fill=factor(key))) + geom_boxplot() 
+box2 <- ggplot(data = tracks_df, aes(x=factor(explicit), y=popularity, fill=factor(explicit))) + geom_boxplot()
+
+grid.arrange(box1, box2, ncol = 2, top="Boxplots of Categorical Factors vs. Popularity")
+
+```
+It can be seen that the interquartile range of "popularity" appears to be different for songs flagged as explicit. For the song "key", there may be differences but they are not as obvious in this visual. 
+
+In addition to predicting popularity as an integer, another objective is to predict if a song is a "hit" or not (i.e., predict if the song's popularity will be in the top quartile). To begin investigating this idea visually, we first classified a track as "hit" or "no_hit" based on being in the top quartile of popularity. Once this is done, we can produce boxplots of "hit" or "no_hit" for different features such as *loudness* and *danceability*:
+
+```{r boxplots of hit or no}
+
+quant_pop <- tracks_df %>%
+              mutate(quartile = factor(ntile(popularity, 4)), 
+                     hit = case_when(quartile == 4 ~"hit", TRUE~"no_hit"))
+
+box1 <- ggplot(data = quant_pop, aes(x=hit, y=loudness, fill=hit)) + geom_boxplot() 
+box2 <- ggplot(data = quant_pop, aes(x=hit, y=danceability, fill=hit)) + geom_boxplot()
+box3 <- ggplot(data = quant_pop, aes(x=hit, y=tempo, fill=hit)) + geom_boxplot()
+box4 <- ggplot(data = quant_pop, aes(x=hit, y=valence, fill=hit)) + geom_boxplot()
+box5 <- ggplot(data = quant_pop, aes(x=hit, y=energy, fill=hit)) + geom_boxplot()
+box6 <- ggplot(data = quant_pop, aes(x=hit, y=liveness, fill=hit)) + geom_boxplot()
+
+
+grid.arrange(box1, box2, box3, box4, box5, box6, ncol = 3, top="Boxplots of Features vs. Hit")
+```
+
+At least visually it appears that some of these features could be useful in predicting which tracks are a hit. For example, the mean of "loudness" and "energy" appear to be higher for "hit" than "no_hit". On the other hand, some of these features don't seem to have such an obvious relationship in this visual; the means and interquartile ranges for the tempo plot do not appear to be so different between "hit" and "no hit". 
+
 
 
 # 3 Genre Classification
@@ -298,7 +360,10 @@ For tree methods, we do not have any assumptions to test besides our observation
 
 # 6 References
 
-
+1.	https://investors.spotify.com/about/default.aspx
+2.	https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features
+3.	https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks
+4.	https://cdla.dev/sharing-1-0/
 
 
 
