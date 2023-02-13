@@ -69,7 +69,7 @@ The independent variables available in the "tracks" data are:
 8. **mode** - <boolean> modality of the track (0 is minor, 1 is major)
 9. **speechiness** - <dbl> score for how speech-like a track is, 0.0-1.0. Values close to one indicate something like a podcast (high speechiness).
 10. **acousticness** - <dbl> range of whether a track is acoustic (0.0-1.0)
-11. **instrumentalness** - <dbl> range of  of whether a track is instrumental (0.0-1.0)
+11. **instrumentalness** - <dbl> range of whether a track is instrumental (0.0-1.0)
 12. **liveness** - <dbl> range representing audience sounds in the track (0.0-1.0)
 13. **valence** - <dbl> represents how 'happy' a track is (0.0-1.0)
 14. **tempo** - <dbl> the temp of the track in beats per minute
@@ -140,7 +140,6 @@ tracks_df$decade <- eval(substr(tracks_df$release_date, 1,3))
 
 
 ```{r}
-library(ggplot2)
 ggplot(data = tracks_df, mapping = aes(x = year)) + geom_bar()
 
 ggplot(tracks_df, aes(x = factor(year), y = popularity)) + 
@@ -246,7 +245,7 @@ At least visually it appears that some of these features could be useful in pred
 
 
 
-# 3 Genre Classification
+# 3 Popularity Classification
 
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
@@ -261,7 +260,7 @@ ctrl <- trainControl(method = "cv", number = 10)
 ## 4.1 LDA
 ```{r}
 #fit a regression model and use k-fold CV to evaluate performance
-lda_model <- train(popularity_coded~duration_ms+explicit+ danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
+lda_model <- train(popularity_coded~duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
 
 print(lda_model)
 ```
@@ -348,6 +347,8 @@ For tree methods, we do not have any assumptions to test besides our observation
 tree_model_reg <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
 print(tree_model_reg)
 ```
+
+
 
 ### 4.4.1 Assumptions
 

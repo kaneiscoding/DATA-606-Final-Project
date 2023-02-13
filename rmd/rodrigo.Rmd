@@ -109,6 +109,40 @@ popularity_tree_predict <- predict(popularity_tree_fit, test)
 
 sqrt(mean((popularity_tree_predict - test$popularity)^2)) 
 ```
+# Regression Tree
+```{r}
+set.seed(1)
+
+N <- nrow(popular_df2)
+n <- N * 0.8
+
+idx = sample(1:N, size=n, replace = FALSE)
+train = popular_df2[idx,]
+test = popular_df2[-idx,]
+
+popularity_tree_fit <- tree(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=train)
+
+summary(popularity_tree_fit)
+
+popularity_tree_predict <- predict(popularity_tree_fit, test)
+
+sqrt(mean((popularity_tree_predict - test$popularity)^2))
+```
+
+```{r}
+plot(popularity_tree_fit)
+text(popularity_tree_fit ,pretty =0)
+```
+
+```{r}
+cv.popularity=cv.tree(popularity_tree_fit, K=10)
+#plot(cv.popularity$popularity, cv.popularity$dev,type='b')
+```
+
+```{r}
+plot(cv.popularity$size, cv.popularity$dev,type='b')
+```
+
 
 ```{r}
 ctrl <- trainControl(method = "cv", number = 10)
