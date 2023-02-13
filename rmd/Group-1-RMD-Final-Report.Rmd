@@ -33,6 +33,7 @@ library(AppliedPredictiveModeling)
 library(gridExtra)
 library(ggcorrplot)
 library(QuantPsyc)
+library(stringr)
 ```
 
 
@@ -58,21 +59,21 @@ One of the key variables of interest/response variables for our project is *popu
 
 The independent variables available in the "tracks" data are:
 
-1.*duration_ms* - <integer> the length of the track in ms
-2. *explicit* - <boolean> explicit lyrics 
-3. *artists* - <list> artist names
-4. *danceability* - <dbl> score for how suited a track is for dancing, 0.0-1.0. 
-5. *energy* - <dbl> score for how energetic a track is perceived, 0.0-1.0. 
-6. *key* - <int> maps Pitch class notation (E.g. 0 = C, 1 = C sharp/D flat, 2 = D, and so on.)
-7. *loudness* - <dbl> decibel loudness of the track range from -60 to 0 dB
-8. *mode* - <boolean> modality of the track (0 is minor, 1 is major)
-9. *speechiness* - <dbl> score for how speech-like a track is, 0.0-1.0. Values close to one indicate something like a podcast (high speechiness).
-10. *acousticness* - <dbl> range of whether a track is acoustic (0.0-1.0)
-11. *instrumentalness* - <dbl> range of  of whether a track is instrumental (0.0-1.0)
-12. *liveness* - <dbl> range representing audience sounds in the track (0.0-1.0)
-13. *valence* - <dbl> represents how 'happy' a track is (0.0-1.0)
-14. *tempo* - <dbl> the temp of the track in beats per minute
-15. *time_signature* - <dbl> time signature of the track 3-7 (3 represents 3/4 time etc.)
+1. **duration_ms** - <integer> the length of the track in ms
+2. **explicit** - <boolean> explicit lyrics 
+3. **artists** - <list> artist names
+4. **danceability** - <dbl> score for how suited a track is for dancing, 0.0-1.0. 
+5. **energy** - <dbl> score for how energetic a track is perceived, 0.0-1.0. 
+6. **key** - <int> maps Pitch class notation (E.g. 0 = C, 1 = C sharp/D flat, 2 = D, and so on.)
+7. **loudness** - <dbl> decibel loudness of the track range from -60 to 0 dB
+8. **mode** - <boolean> modality of the track (0 is minor, 1 is major)
+9. **speechiness** - <dbl> score for how speech-like a track is, 0.0-1.0. Values close to one indicate something like a podcast (high speechiness).
+10. **acousticness** - <dbl> range of whether a track is acoustic (0.0-1.0)
+11. **instrumentalness** - <dbl> range of  of whether a track is instrumental (0.0-1.0)
+12. **liveness** - <dbl> range representing audience sounds in the track (0.0-1.0)
+13. **valence** - <dbl> represents how 'happy' a track is (0.0-1.0)
+14. **tempo** - <dbl> the temp of the track in beats per minute
+15. **time_signature** - <dbl> time signature of the track 3-7 (3 represents 3/4 time etc.)
 
 ```{r import csv}
 artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
@@ -366,9 +367,116 @@ For tree methods, we do not have any assumptions to test besides our observation
 4.	https://cdla.dev/sharing-1-0/
 
 
+```{r}
+#clean the artists to those with only one genre and of the primary genre types
+
+artist_genres <- artists_df %>%
+                  filter(genres != "[]") %>%
+                  mutate(genres = toupper(genres), 
+                         rock = grepl("ROCK", genres, fixed=TRUE), 
+                         rnb = grepl("R&B", genres, fixed=TRUE),
+                         pop = grepl("POP", genres, fixed=TRUE),
+                         country = grepl("COUNTRY", genres, fixed=TRUE),
+                         rap = grepl("RAP", genres, fixed=TRUE),
+                         jazz = grepl("JAZZ", genres, fixed=TRUE),
+                         classical = grepl("CLASSICAL", genres, fixed=TRUE),
+                         soul = grepl("SOUL", genres, fixed=TRUE),
+                         funk = grepl("FUNK", genres, fixed=TRUE),
+                         electronic = grepl("ELECTRONIC", genres, fixed=TRUE),
+                         disco = grepl("DISCO", genres, fixed=TRUE),
+                         num_genres = rock + rnb + pop + country + rap + jazz + classical + soul + funk +electronic + disco) %>%
+                  filter(num_genres == 1) %>%
+                  mutate(genre = case_when(rock == 1 ~ "rock", 
+                                           rnb == 1 ~ "rnb", 
+                                           pop == 1 ~ "pop", 
+                                           country == 1 ~ "country",
+                                           rap == 1 ~ "rap",
+                                           jazz == 1 ~ "jazz",
+                                           classical == 1 ~ "classical",
+                                           soul == 1 ~ "soul",
+                                           funk == 1 ~ "funk",
+                                           electronic == 1 ~ "electronic",
+                                           disco == 1 ~ "disco")) %>%
+                dplyr::select(id, genre, name, popularity)
+```
 
 
 
+```{r}
+#clean the track artist lists
+rep_str = c("\\[" = "", "\\]"="", "'"="")
+
+track_artists <- tracks_df
+track_artists$id_artists <- str_replace_all(track_artists$id_artists, rep_str)
+track_artists$id_artists <- as.list(track_artists$id_artists)
+  
+```
+
+
+
+```{r}
+#inner join so only the artists with single genre remain alongsige the track data
+genre_tracks <- merge(x=artist_genres, y=track_artists, by.x="id", by.y="id_artists")
+
+colnames(genre_tracks)
+colnames(genre_tracks) <- c("artist_id", "genre", "artist_name", "artist_popularity", "song_id", "song_name", "song_popularity", "duration_ms", "explicit", "artists", "release_date", "danceability", "energy", "key", "loudness", "mode", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "time_signature", "year", "decade" )
+
+```
+
+
+```{r}
+#count the strata to understand what should be used to test/train
+n = 150000
+N = dim(genre_tracks)[1]
+
+order <- unique(genre_tracks$genre)
+order
+
+strata <- genre_tracks %>% 
+            count(genre) %>% 
+            rename(Nh = n) %>%
+            mutate(nh = round(Nh*n/N)) %>%
+            slice(match(order, genre))
+strata
+
+strata_sizes <- strata$nh
+
+```
+
+```{r}
+#perform the stratified sample
+idx_strat <- sampling:::strata(genre_tracks, stratanames=c("genre"), size=strata_sizes, method="srswor")
+train_genre <- genre_tracks[idx_strat$ID_unit,]
+test_genre <- genre_tracks[-idx_strat$ID_unit,]
+
+```
+
+```{r}
+#build tree genre
+tree.genre <- tree(factor(genre)~duration_ms+factor(explicit)+danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo, train_genre)
+summary(tree.genre)
+
+plot(tree.genre)
+text(tree.genre, cex=0.5, col="blue")
+```
+
+```{r}
+#build lda genre
+lda.genre <- lda(factor(genre)~duration_ms+factor(explicit)+danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo, train_genre)
+lda.genre
+
+```
+
+```{r}
+#test the lda misclass
+
+lda.predict<-predict(lda.genre, test_genre)
+table <- table(lda.predict$class, test_genre$genre)
+table
+
+misclass = 1 - sum(diag(table)) / sum(table)
+misclass
+```
 
 
 
