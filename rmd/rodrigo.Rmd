@@ -136,6 +136,7 @@ text(popularity_tree_fit ,pretty =0)
 
 ```{r}
 cv.popularity=cv.tree(popularity_tree_fit, K=10)
+plot(cv.popularity$size, cv.popularity$dev,type='b')
 #plot(cv.popularity$popularity, cv.popularity$dev,type='b')
 ```
 

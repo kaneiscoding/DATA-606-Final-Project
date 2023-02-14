@@ -134,6 +134,7 @@ test_str <- "1922-02-22"
 test_substr <- substr(test_str, 1,4)
 test_substr
 ```
+
 ```{r}
 tracks_df$decade <- eval(substr(tracks_df$release_date, 1,3))
 ```
@@ -243,9 +244,21 @@ grid.arrange(box1, box2, box3, box4, box5, box6, ncol = 3, top="Boxplots of Feat
 
 At least visually it appears that some of these features could be useful in predicting which tracks are a hit. For example, the mean of "loudness" and "energy" appear to be higher for "hit" than "no_hit". On the other hand, some of these features don't seem to have such an obvious relationship in this visual; the means and interquartile ranges for the tempo plot do not appear to be so different between "hit" and "no hit". 
 
+# Sampling
+To build some of our models, we decided to use random sampling to devide the data into training and testing sets. 
+```{r}
+set.seed(1)
+
+N <- nrow(popular_df2)
+n <- N * 0.8
+
+idx = sample(1:N, size=n, replace = FALSE)
+train = popular_df2[idx,]
+test = popular_df2[-idx,]
+```
 
 
-# 3 Popularity Classification
+# 3.2 Popularity Classification
 
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
@@ -328,10 +341,10 @@ Lack of Influential Outliers - Cook's Distance
 ```{r}
 # Influential Outliers 
 popular_df[cooks.distance(model_fit)>1,]
-
 ```
 
 ## 4.3 Classification Tree
+
 ```{r}
 tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
 
@@ -340,9 +353,40 @@ print(tree_model_class)
 
 ### 4.3.1 Assumptions
 
-For tree methods, we do not have any assumptions to test besides our observations being independant of each other, which they are.
+For tree methods, we do not have any assumptions to test besides our observations being independent of each other, which they are.
 
 ## 4.4 Regression Tree
+Is a supervised learning statistical model where the target variable can take continuous values. We use the model to predict the popularity score for each of the songs, using all other variables as predictors, first we divide the data into training and testing using simple random sampling, we used 80% of the data as training and 20% as testing. 
+
+A regression Tree of 6 terminal nodes was created and using the variables loudness, acousticness, explicit and duration_ms as predictors. 
+```{r}
+popularity_tree_fit <- tree(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=train)
+
+summary(popularity_tree_fit)
+```
+
+The RMSE obtained for our Regression Tree is 0.9239. RMSE is in the same units as our target value, in this case we have a very big RMSE if we compared to 0.00000000000000005539.
+```{r}
+popularity_tree_predict <- predict(popularity_tree_fit, test)
+print('RMSE:')
+print(sqrt(mean((popularity_tree_predict - test$popularity)^2)))
+print('Mean')
+print(mean(popular_df2$popularity))
+```
+Here below we can observe the regression tree plotted. 
+```{r}
+plot(popularity_tree_fit)
+text(popularity_tree_fit ,pretty =0)
+```
+
+To see if tree pruning is needed, we plot the the cross-validation error and the size of the tree, we concluded that 6 terminal nodes is the best performing tree so no pruning is needed. 
+```{r}
+cv.popularity=cv.tree(popularity_tree_fit, K=10)
+plot(cv.popularity$size, cv.popularity$dev,type='b')
+
+```
+
+Lastly, we did k-fold cross validation to see if we see an improvement. The RMSE obtained is very similar to the previous value, meaning that this model is not very useful to obtain the real value of popularity. 
 ```{r}
 tree_model_reg <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
 print(tree_model_reg)
