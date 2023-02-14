@@ -1,0 +1,622 @@
+---
+title: "Classification of Spotify Data"
+subtitle: "DATA 606 - W2023 Final Project"
+author: "Kane Smith, Rodrigo Rosales Alvarez, Arhur Trim, Jordan Keelan, Scott Bennett"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  pdf_document:
+    extra_dependencies:
+    - bbm
+    - xcolor
+---
+
+\newpage
+\tableofcontents
+\pagebreak
+
+```{r setup, include=FALSE}
+# Set R Chunk options
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=6, fig.height=4)
+
+# Set the number of significant digits
+options(scipen=50, digits=4)
+library(dplyr)
+library(ggplot2)
+library(tree)
+library(MASS)
+library(ISLR)
+library(car)
+library(sampling)
+library(caret)
+library(AppliedPredictiveModeling)
+library(gridExtra)
+library(ggcorrplot)
+library(QuantPsyc)
+library(stringr)
+```
+
+
+# 1 Introduction
+
+## 1.1 Background
+
+Spotify is the world’s most popular subscription service for audio streaming. Spotify claims 489 million users, of which 205 million users are Spotify Premium subscribers(1). Spotify has an extensive library of music tracks and gathers data about the music in order to better recommend songs to users, and makes this data available through a web API(2). By analyzing this data, we hope to gain insights into how characteristics of different songs and the artists who created them affect the popularity of the songs. We also aim to explore other trends and relationships within the data, such as whether we can predict the genre of a song based on characteristics such as loudness and musical key. This analysis could potentially be used to identify what factors make songs popular and help artists create music that will be commercially successful (if that is their goal). It may also expose other findings that would be interesting to a general audience of music consumers.
+
+## 1.2 Objective & Topic Importance
+
+## 1.3 Data Source
+
+For this project, we used a Kaggle dataset that offers consolidated data from the Spotify web APIs(3). The dataset is structured into two data tables, provided as CSV files. These two data tables are “Tracks” and “Artists”
+
+The "Tracks" “csv” contains information for approximately 600,000 musical tracks available on Spotify. Features include "popularity" as well as a multitude of attributes to describe the character of the music itself i.e, "loudness" score and "danceability" score. The "Artists" csv contains additional data, specifically about the artist such as the list of genre's associated with that artist.
+
+Usage of the dataset is governed by the Community Data License Agreement, which grants: "... a worldwide, non-exclusive, irrevocable (except as provided in Section 5) right to: (a) Use Data; and (b) Publish Data." (4)
+
+## 1.4 Summary of Variables
+
+One of the key variables of interest/response variables for our project is *popularity*. This is a score given to a track from 0-100, with the most popular track being given a score of 100. For some parts of the analysis, the *popularity* variable was used to classify each song as a "hit" or not. For the purposes of this project, a hit was considered a track in the upper quartile of *popularity*.
+
+The independent variables available in the "tracks" data are:
+
+1. **duration_ms** - <integer> the length of the track in ms
+2. **explicit** - <boolean> explicit lyrics 
+3. **artists** - <list> artist names
+4. **danceability** - <dbl> score for how suited a track is for dancing, 0.0-1.0. 
+5. **energy** - <dbl> score for how energetic a track is perceived, 0.0-1.0. 
+6. **key** - <int> maps Pitch class notation (E.g. 0 = C, 1 = C sharp/D flat, 2 = D, and so on.)
+7. **loudness** - <dbl> decibel loudness of the track range from -60 to 0 dB
+8. **mode** - <boolean> modality of the track (0 is minor, 1 is major)
+9. **speechiness** - <dbl> score for how speech-like a track is, 0.0-1.0. Values close to one indicate something like a podcast (high speechiness).
+10. **acousticness** - <dbl> range of whether a track is acoustic (0.0-1.0)
+11. **instrumentalness** - <dbl> range of  of whether a track is instrumental (0.0-1.0)
+12. **liveness** - <dbl> range representing audience sounds in the track (0.0-1.0)
+13. **valence** - <dbl> represents how 'happy' a track is (0.0-1.0)
+14. **tempo** - <dbl> the temp of the track in beats per minute
+15. **time_signature** - <dbl> time signature of the track 3-7 (3 represents 3/4 time etc.)
+
+```{r import csv}
+artists_df <- data.frame(read.csv("../spotify_dataset/artists.csv"))
+tracks_df <- data.frame(read.csv("../spotify_dataset/tracks.csv"))
+```
+
+
+## 2.4 Data Cleaning
+```{r histograms}
+# head(artists_df) somthing here has characters that latex cant print
+# head(tracks_df)
+
+tracks_pop <- ggplot(data=tracks_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+artists_pop <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
+
+tracks_pop
+artists_pop
+```
+
+```{r filter and normalize}
+# Filter out tracks with popularity less than 1
+popular_df <- tracks_df %>% filter(popularity > 1)
+
+# normalize Data
+popular_labels <- popular_df[, c("id", "name", "artists", "id_artists", "release_date")]
+popular_factors <- popular_df[, c("explicit", "key", "mode", "time_signature")]
+popular_numeric <- popular_df[, c("duration_ms","popularity", "danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo")]
+popular_scaled <- scale(popular_numeric)
+popular_factors <- lapply(popular_factors,factor)
+popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
+```
+
+```{r filtered histogram}
+# Visualize filtered tracks popularity histogram 
+tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+#artists_pop_filtered <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
+tracks_pop_scaled <- ggplot(data=popular_df2, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
+
+tracks_pop_filtered
+tracks_pop_scaled
+#artists_pop_filtered
+```
+
+## 2.5 Data Exploration
+
+### Correlation Matrix
+ 
+```{r}
+dim(tracks_df)
+```
+ 
+```{r}
+tracks_df$year <- eval(substr(tracks_df$release_date, 1,4))
+```
+ 
+```{r}
+test_str <- "1922-02-22"
+test_substr <- substr(test_str, 1,4)
+test_substr
+```
+```{r}
+tracks_df$decade <- eval(substr(tracks_df$release_date, 1,3))
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(data = tracks_df, mapping = aes(x = year)) + geom_bar()
+
+ggplot(tracks_df, aes(x = factor(year), y = popularity)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+ggplot(tracks_df, aes(x = factor(decade), y = popularity)) + 
+  geom_bar(stat = "summary", fun = "mean")
+#+ guide_axis()
+```
+
+```{r}
+ggplot(tracks_df, aes(x = factor(decade), y = loudness)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+ggplot(tracks_df, aes(x = factor(decade), y = energy)) + 
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+```{r}
+# tracks_190 <- filter(tracks_df, filter = tracks_df$decade == "190") this line did not knit
+```
+
+```{r}
+# dim(tracks_190)
+```
+
+```{r}
+tracks_df[478628,]
+```
+
+```{r}
+tracks_clean <- tracks_df[-478628,]
+```
+
+```{r means by decade}
+plt2 <- ggplot(tracks_clean, aes(x = factor(decade), y = acousticness)) + 
+  geom_bar(stat = "summary", fun = "mean") 
+
+plt3 <- ggplot(tracks_clean, aes(x = factor(decade), y = energy)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+plt1 <- ggplot(tracks_clean, aes(x = factor(decade), y = popularity)) + 
+  geom_bar(stat = "summary", fun = "mean")
+
+plt4 <- ggplot(tracks_clean, aes(x = factor(decade), y = duration_ms)) + 
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+```{r}
+grid.arrange(plt1, plt2, plt3, plt4, top = "Variation by Decade", ncol = 2)
+```
+
+
+```{r correlation plot}
+
+# Calculate the correlation matrix
+cor_matrix <- cor(popular_numeric)
+
+# plot the correlation
+ggcorrplot(cor_matrix,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE,
+           show.legend = FALSE
+           )
+```
+
+### Popularity and Hit Boxplots
+
+To begin investigating the idea that *popularity* could be related to features which describe the character of the music, it would be useful to do some preliminary visual exploration of those features. 
+
+Two of the available "factor" variables (*key* and *explicit*) can be analyzed using boxplots:
+
+```{r boxplots of factors}
+box1 <- ggplot(data = tracks_df, aes(x=factor(key), y=popularity, fill=factor(key))) + geom_boxplot() 
+box2 <- ggplot(data = tracks_df, aes(x=factor(explicit), y=popularity, fill=factor(explicit))) + geom_boxplot()
+
+grid.arrange(box1, box2, ncol = 2, top="Boxplots of Factors vs. Popularity")
+
+```
+It can be seen that the interquartile range of "popularity" appears to be different for songs flagged as explicit. For the song "key", there may be differences but they are not as obvious in this visual. 
+
+In addition to predicting popularity as an integer, another objective is to predict if a song is a "hit" or not (i.e., predict if the song's popularity will be in the top quartile). To begin investigating this idea visually, we first classified a track as "hit" or "no_hit" based on being in the top quartile of popularity. Once this is done, we can produce boxplots of "hit" or "no_hit" for different features such as *loudness* and *danceability*:
+
+```{r boxplots of hit or no}
+
+quant_pop <- tracks_df %>%
+              mutate(quartile = factor(ntile(popularity, 4)), 
+                     hit = case_when(quartile == 4 ~"hit", TRUE~"no_hit"))
+
+box1 <- ggplot(data = quant_pop, aes(x=hit, y=loudness, fill=hit)) + geom_boxplot(outlizer.size=0.1) 
+box2 <- ggplot(data = quant_pop, aes(x=hit, y=danceability, fill=hit)) + geom_boxplot()
+box3 <- ggplot(data = quant_pop, aes(x=hit, y=tempo, fill=hit)) + geom_boxplot()
+box4 <- ggplot(data = quant_pop, aes(x=hit, y=valence, fill=hit)) + geom_boxplot()
+box5 <- ggplot(data = quant_pop, aes(x=hit, y=energy, fill=hit)) + geom_boxplot()
+box6 <- ggplot(data = quant_pop, aes(x=hit, y=instrumentalness, fill=hit)) + geom_boxplot()
+
+
+grid.arrange(box1, box2, box3, box4, box5, box6, ncol = 3, top="Boxplots of Features vs. Hit")
+
+```
+
+```{r}
+grid.arrange(box5, box2, box3, ncol = 3, top="Boxplots of Features vs. Hit")
+
+```
+
+
+At least visually it appears that some of these features could be useful in predicting which tracks are a hit. For example, the mean of "loudness" and "energy" appear to be higher for "hit" than "no_hit". On the other hand, some of these features don't seem to have such an obvious relationship in this visual; the means and interquartile ranges for the tempo plot do not appear to be so different between "hit" and "no hit". 
+
+
+
+# 3 Genre Classification
+
+```{r}
+popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
+
+# Convert the outcome variable to a factor
+popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
+
+# control object for k-fold cross validation
+ctrl <- trainControl(method = "cv", number = 10)
+```
+
+## 4.1 LDA
+```{r}
+#fit a regression model and use k-fold CV to evaluate performance
+lda_model <- train(popularity_coded~duration_ms+explicit+ danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
+
+print(lda_model)
+```
+
+
+### 4.1.1 Assumptions
+
+Multivariate Normality - mulri.norm Test
+
+$H_0$ (Null hypothesis): The variables follow a multivariate normal distribution.
+
+$H_A$ (Alternative hypothesis): The variables do not follow a multivariate normal distribution.
+
+We will use an alpha value of 0.05.
+
+```{r}
+# Multivariate Normality 
+N <- nrow(popular_scaled)
+idx = sample(1:N, size=1000, replace = FALSE)
+popular_sample = popular_scaled[idx,]
+mult.norm(popular_sample)$mult.test
+```
+
+Equality of Variance - Levene Test
+
+$H_0$ (Null hypothesis): Sample variances are equal.
+
+$H_A$ (Alternative hypothesis): Samples variances are not equal.
+
+We will use an alpha value of 0.05.
+
+```{r}
+# Equality of Variance
+popularity_var_test <- data.frame(popular_factors, popular_df2["popularity"])
+N <- nrow(popularity_var_test)
+idx = sample(1:N, size=1000, replace = FALSE)
+popular_sample2 = popularity_var_test[idx,]
+leveneTest(popularity~., data = popular_sample2)
+```
+
+
+## 4.2 Logistic Regression
+
+```{r}
+#fit a regression model and use k-fold CV to evaluate performance
+lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, method = "glm", trControl = ctrl, family="binomial")
+
+summary(lr_model)
+```
+
+### 4.2.1 Assumptions
+
+Absence of Multicolinearity - Variance Inflation Factor
+
+```{r}
+## VIF
+model_fit<-lm(popularity~duration_ms+factor(explicit)+ danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo+factor(time_signature), data=popular_df2)
+
+vif(model_fit)
+```
+
+
+Lack of Influential Outliers - Cook's Distance
+
+```{r}
+# Influential Outliers 
+popular_df[cooks.distance(model_fit)>1,]
+
+```
+
+## 4.3 Classification Tree
+```{r}
+tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
+
+print(tree_model_class)
+```
+```{r}
+set.seed(1)
+
+N <- nrow(popular_df2)
+n <- N * 0.8
+
+idx = sample(1:N, size=n, replace = FALSE)
+train = popular_df2[idx,]
+test = popular_df2[-idx,]
+```
+
+```{r}
+
+tree.class <- tree(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = train)
+summary(tree.class)
+
+plot(tree.class)
+text(tree.class, cex=1.5, col="purple")
+```
+
+
+```{r}
+tree.pred <- predict(tree.class, test, type = "class")
+
+tab <- table(tree.pred, test$popularity_coded)
+tab
+
+mis = 1 - sum(diag(tab)) / sum(tab)
+mis
+```
+
+```{r}
+cv.class = cv.tree(tree.class)
+plot(cv.class$size, cv.class$dev, type='b', cex.main=1.5, cex.lab=1.5, cex.axis=1.5)
+```
+
+```{r}
+
+set.seed(10)
+strat_folds <- createFolds(factor(popular_df2$popularity_coded), k=10)
+
+for (i in 1:10){
+
+idx <- strat_folds[[i]]
+fold <- popular_df2[idx,]
+print(table(fold$popularity_coded))
+  
+}
+
+```
+```{r}
+mis_tree <- function(idx){
+  Train <- popular_df2[-idx,]
+  Test <- popular_df2[idx,]
+  tree.class <- tree(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = Train)
+  tree_hat <- predict(tree.class, Test, type = "class")
+  
+  tab <- table(tree_hat, Test$popularity_coded)
+  print(tab)
+  
+  misclass = 1 - sum(diag(tab)) / sum(tab)
+  print(misclass)
+  return(misclass)
+
+}
+
+misclass_tree = lapply(strat_folds, mis_tree)
+
+"The mean misclassification:"
+mean(as.numeric(misclass_tree))
+```
+
+
+```{r}
+plot(tree_model_class)
+```
+
+
+### 4.3.1 Assumptions
+
+For tree methods, we do not have any assumptions to test besides our observations being independant of each other, which they are.
+
+## 4.4 Regression Tree
+```{r}
+tree_model_reg <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
+print(tree_model_reg)
+
+
+
+```
+
+### 4.4.1 Assumptions
+
+For tree methods, we do not have any assumptions to test besides our observations being independant of each other, which they are.
+
+
+
+## 4.5 Summary of Findings
+
+# 5 Conclusion
+
+# 6 References
+
+1.	https://investors.spotify.com/about/default.aspx
+2.	https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features
+3.	https://www.kaggle.com/datasets/yamaerenay/spotify-dataset-19212020-600k-tracks
+4.	https://cdla.dev/sharing-1-0/
+
+
+```{r}
+#clean the artists to those with only one genre and of the primary genre types
+
+artist_genres <- artists_df %>%
+                  filter(genres != "[]") %>%
+                  mutate(genres = toupper(genres), 
+                         rock = grepl("ROCK|METAL", genres, fixed=FALSE), 
+                         blues = grepl("BLUES", genres, fixed=FALSE),
+                         pop = grepl("POP", genres, fixed=FALSE),
+                         country = grepl("COUNTRY", genres, fixed=FALSE),
+                         rap = grepl("RAP|HIP HOP", genres, fixed=FALSE),
+                         jazz = grepl("JAZZ", genres, fixed=FALSE),
+                         classical = grepl("CLASSICAL", genres, fixed=FALSE),
+                         soul = grepl("SOUL", genres, fixed=FALSE),
+                         reggae = grepl("REGGAE", genres, fixed=FALSE),
+                         electronic = grepl("ELECTRONIC|HOUSE|DNB|EDM", genres, fixed=FALSE),
+                         disco = grepl("DISCO", genres, fixed=FALSE),
+                         num_genres = rock + blues + pop + country + rap + jazz + classical + soul + reggae +electronic + disco) %>%
+                  filter(num_genres == 1) %>%
+                  mutate(genre = case_when(rock == 1 ~ "rock", 
+                                           blues == 1 ~ "blues", 
+                                           pop == 1 ~ "pop", 
+                                           country == 1 ~ "country",
+                                           rap == 1 ~ "rap",
+                                           jazz == 1 ~ "jazz",
+                                           classical == 1 ~ "classical",
+                                           soul == 1 ~ "soul",
+                                           reggae == 1 ~ "reggae",
+                                           electronic == 1 ~ "electronic",
+                                           disco == 1 ~ "disco")) %>%
+                  dplyr::select(id, genre, name, popularity)
+```
+
+
+
+```{r}
+#clean the track artist lists
+rep_str = c("\\[" = "", "\\]"="", "'"="")
+
+track_artists <- tracks_df
+track_artists$id_artists <- str_replace_all(track_artists$id_artists, rep_str)
+track_artists$id_artists <- as.list(track_artists$id_artists)
+  
+```
+
+
+
+```{r}
+#inner join so only the artists with single genre remain alongsige the track data
+genre_tracks <- merge(x=artist_genres, y=track_artists, by.x="id", by.y="id_artists")
+
+colnames(genre_tracks)
+colnames(genre_tracks) <- c("artist_id", "genre", "artist_name", "artist_popularity", "song_id", "song_name", "song_popularity", "duration_ms", "explicit", "artists", "release_date", "danceability", "energy", "key", "loudness", "mode", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "time_signature", "year", "decade")
+
+```
+
+
+```{r}
+#count the strata to understand what should be used to test/train
+n = round(dim(genre_tracks)[1]*0.75)
+N = dim(genre_tracks)[1]
+
+order <- unique(genre_tracks$genre)
+order
+
+strata <- genre_tracks %>% 
+            count(genre) %>% 
+            rename(count = n) %>%
+            slice(match(order, genre))
+strata
+
+strata_sizes <- strata$nh
+
+```
+
+```{r}
+#perform the stratified sample
+idx_strat <- sampling:::strata(genre_tracks, stratanames=c("genre"), size=strata_sizes, method="srswor")
+train_genre <- genre_tracks[idx_strat$ID_unit,]
+test_genre <- genre_tracks[-idx_strat$ID_unit,]
+
+```
+
+```{r}
+#build tree genre
+tree.genre <- tree(factor(genre)~duration_ms+factor(explicit)+danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo, train_genre)
+summary(tree.genre)
+
+plot(tree.genre)
+text(tree.genre, cex=1.5, col="purple")
+```
+
+```{r}
+set.seed(10)
+strat_folds <- createFolds(factor(genre_tracks$genre), k=10)
+
+for (i in 1:10){
+
+idx <- strat_folds[[i]]
+fold <- genre_tracks[idx,]
+print(table(fold$genre))
+  
+}
+
+```
+
+
+```{r}
+mis_tree <- function(idx){
+  Train <- genre_tracks[-idx,]
+  Test <- genre_tracks[idx,]
+  tree.genre <- tree(factor(genre)~duration_ms+factor(explicit)+danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo, Train)
+  tree_hat <- predict(tree.genre, Test, type = "class")
+  
+  tab <- table(tree_hat, Test$genre)
+  print(tab)
+  
+  misclass = 1 - sum(diag(tab)) / sum(tab)
+  print(misclass)
+  return(misclass)
+
+}
+
+misclass_tree = lapply(strat_folds, mis_tree)
+
+"The mean misclassification:"
+mean(as.numeric(misclass_tree))
+```
+
+
+```{r}
+#build lda genre
+lda.genre <- lda(factor(genre)~duration_ms+factor(explicit)+danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo, train_genre)
+lda.genre
+
+```
+
+```{r}
+#test the lda misclass
+
+lda.predict<-predict(lda.genre, test_genre)
+table <- table(lda.predict$class, test_genre$genre)
+table
+
+misclass = 1 - sum(diag(table)) / sum(table)
+misclass
+```
+
+
+
+
+
+
+
+
+```{r}
+unique(artists_df$genres)
+```
+```{r}
+string = "['australian hip hop', 'australian trap']" 
+grep("hip hop|rank", string)
+
+
+```
+
+
