@@ -1,0 +1,112 @@
+---
+title: "**Classification of Spotify Data**"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### *DATA 606 - Winter 2023 Final Project*
+#### *Date: February 15th, 2023*
+#### *Group 1: Kane Smith, Rodrigo Rosales Alvarez, Arthur Trim, Jordan Keelan, Scott Bennett*
+
+# Introduction
+## Background
+Spotify is the world’s most popular subscription service for audio streaming. Spotify claims 489 million users, of which 205 million users are Spotify Premium subscribers(1). Spotify has an extensive library of music tracks and gathers data about the music in order to better recommend songs to users, and makes this data available through a web API(2). By analyzing this data, we hope to gain insights into how characteristics of different songs affect the popularity of the songs. We also aim to explore other trends and relationships within the data, such as whether we can predict the genre of a song based on characteristics such as loudness and musical key. This analysis could potentially be used to identify what factors make songs popular and help artists create music that will be commercially successful (if that is their goal). It may also expose other findings that would be interesting to a general audience of music consumers.
+
+## Data Source
+For this project, we used a Kaggle dataset that offers consolidated data from the Spotify web APIs(3). The dataset is structured into two data tables, provided as CSV files. These two data tables are “Tracks” and “Artists”
+
+The "Tracks.csv” contains information for approximately 600,000 musical tracks available on Spotify. Features include "popularity" as well as a multitude of attributes to describe the character of the music itself i.e, "loudness" score and "danceability" score. The "Artists" csv contains additional data, specifically about the artist.
+
+Usage of the dataset is governed by the Community Data License Agreement, which grants: "... a worldwide, non-exclusive, irrevocable (except as provided in Section 5) right to: (a) Use Data; and (b) Publish Data." (4)
+
+## Summary of Variables
+In the 'Tracks.csv' data source, one of the key variables of interest/response variables for our project is "popularity". This is a score given to a track from 0-100, with the most popular track being given a score of 100.
+The independent variables available in the "tracks" data are:
+
+1. duration_ms - <integer> the length of the track in milliseconds
+2. explicit - <boolean> explicit lyrics
+3. artists - <list> artist names
+4. danceability - <dbl> score for how suited a track is for dancing, 0.0-1.0
+5. energy - <dbl> score for how energetic a track is percieved, 0.0-1.0
+6. key - <int> maps Pitch class notation (E.g. 0 = C, 1 = C sharp/D flat, 2 = D, and so on.)
+7. loudness - <dbl> decibel loudness of the track range from -60 to 0 dB
+8. mode - <boolean> modality of the track (0 is minor, 1 is major)
+9. speechiness - <dbl> score for how speech-like a track is, 0.0-1.0. Values close to one indicate something like a podcast (high speechiness)
+10. acousticness - <dbl> range of whether a track is acoustic (0.0-1.0)
+11. instrumentalness - <dbl> range of  of whether a track is instrumental (0.0-1.0)
+12. liveness - <dbl> range representing audience sounds in the track (0.0-1.0)
+13. valence - <dbl> represents how 'happy' a track is (0.0-1.0)
+14. tempo - <dbl> the temp of the track in beats per minute
+15. time_signature - <dbl> time signature of the track 3-7 (3 represents 3/4 time etc.)
+
+## Data Cleaning and Validation
+The dataset was already very clean when it was downloaded, but we still did validation to ensure that everything was good before we began an exploratory analysis and modeling. We started by looking for counts of NAs and duplicate values which there were none. Next, we checked the dimensions of our data frame; there are 22 variables and 529,958 rows. 
+
+The most important part of cleaning the data was changing variables that were meant to be factors (explicit, key, mode, time_signature) as factors instead of integers. The other important was to normalize our continuous features using mean normalization to potentially improve the performance of our models and to allow us to use linear discriminant analysis. 
+
+## Preliminary Analyses
+
+### bar-plot
+
+### Histogram
+
+### Boxplots and Hit Classification
+To investigate the idea that a "hit" could be predicted based on the features which describe the character of the music, it would be useful to do some preliminary visual exploration of those features. By first classifying a track as "hit" or "no_hit" based on being in the top quartile of popularity, we can the produce a set of boxplots as shown below:
+
+### Correlation Matrix Plot
+
+### Plots by Year and by Decade
+To explore how the some of the variables in the dataset vary between different musical eras, we generated bar charts of the mean popularity, acoustic-ness, energy level, and song duration for each decade in the dataset by simplifying the ‘date_published’ value to a decade label. These plots show that newer music is generally more popular than older music, particularly music from decades before 1950. It also shows that the length of songs has stayed fairly steady over time, while the musical energy level has increased somewhat and the degree of acoustic instrumentation has decreased.
+
+# Problem Statement
+The music industry is in a constant state of evolution, and the popularity of a song can play a significant role in an artist's success. With an abundance of music being produced and released, it can be challenging to predict which songs will achieve popularity. Considering this environment, there is a growing need for a more scientifically informed understanding of the factors that contribute to a song's popularity. Although virality cannot always be predicted, it can be influenced, and record labels and streaming services can benefit greatly from affiliation with viral hits. By understanding the factors that contribute to popularity and identifying them in new songs and artists, they can make informed decisions on music production and marketing strategies.
+
+“Data is becoming a primary way for labels and other tastemakers to find their next stars. Shav Garg is the co-founder of Indify, a company he calls a “music data platform.” Music pros use his company to figure out who the next hot artists are, and they were extremely early in noticing artists like Khalid, who the company first featured in the fall of 2015, nearly a year and a half before his debut album.” (SETARO, S.)
+
+As data becomes an increasingly crucial tool in the music industry, many music producers and musicians are adopting a formulaic approach to music design. By breaking down successful or unsuccessful songs into their fundamental elements and analyzing patterns influencing listener emotions, they can leverage these findings in the creation of novel music. Understanding these song features and how they contribute to popularity can help artists stay ahead of musical trends and create more impactful music.
+
+This project's purpose is to analyze the features of songs (as listed in the “Summary of Variables” section above) and to develop multiple statistical models to determine the relevance of these features to a song's popularity. This analysis will provide valuable insights into the music industry and inform artists, music producers, and industry professionals on how to make informed decisions to increase the popularity of their music.
+
+# Statistical Analyses
+
+## Classification of Target Variable - Hit or Not?
+As we have stated, the dependent variable that we are using to assess if a song will be classified as a hit is “popularity,” a score from 0 to 100 that ranks how popular an artist is relative to other artists on the platform. To use this variable in classification problems, we decided to code it, “1” means that the song is a hit, “0” indicates that the song is not a hit; the threshold used to make the division was the 75th percentile in the popularity column, everything below the 75th percentile is considered “not hit”, the rest is considered a “hit”.
+
+## Assumption Testing
+
+### Absence of Multicollinearity
+The variance inflation factor of the features used in our model are all between 1 and 5. This means that there is low multicollinearity between the predictors and there is no issue with the multicollinearity assumption.
+
+### Lack of Influential Outliers
+To check for influential outliers in our dataset, we calculated the cook’s distance of every observation. We defined an influential outlier as an observation having a cook’s distance greater than 1. Using this definition, there are no influential outliers in our dataset. 
+
+## Logistic Regression
+Type of linear model that uses a logistic function to model the relationship between the independent variables and the dependent variable, where the target variable can only take two values. It uses the maximum likelihood method to estimate the regression coefficients that maximizes the likelihood of observing the input data. 
+
+In our Logistic Regression we used the following variables as predictors:
+
+* duration_ms
+* Explicit
+* Danceability
+* Energy
+* Key
+* Loudness
+* Mode
+* Speechiness
+* Acousticness
+* Instrumentalness
+* Liveness
+* valence
+* Tempo
+* time_signature
+
+Using K-fold Cross Validation to divide the normalized dataset in 10 folds, we train and test our model multiple times. The results obtained are as follows:
+
+# *ADD K-FOLD CV RESULTS HERE*
+
+# Summary of Findings
+
+# Conclusions
+
+# References
