@@ -109,14 +109,9 @@ The most important part of cleaning the data was changing variables that were me
 ### histogram
 
 ```{r histograms}
-# head(artists_df) somthing here has characters that latex cant print
-# head(tracks_df)
-
 tracks_pop <- ggplot(data=tracks_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
 artists_pop <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
 
-tracks_pop
-artists_pop
 ```
 
 ```{r filter and normalize}
@@ -231,7 +226,7 @@ cor_matrix <- cor(popular_numeric)
 ggcorrplot(cor_matrix,
            hc.order = TRUE,
            type = "lower",
-           lab = TRUE,
+          lab = TRUE,
            show.legend = FALSE
            )
 ```
@@ -276,7 +271,7 @@ At least visually it appears that some of these features could be useful in pred
 
 
 # Sampling
-To build some of our models, we decided to use random sampling to devide the data into training and testing sets. 
+To build some of our models, we decided to use random sampling to divide the data into training and testing sets. 
 ```{r}
 set.seed(1)
 
@@ -299,8 +294,15 @@ popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= qu
 # Convert the outcome variable to a factor
 popular_df2$popularity_coded <- as.factor(popular_df2$popularity_coded)
 
+# Confusion matrix function to be added to the control object
+cfm <- function(data, lev = NULL, model = NULL) {
+  cm <- confusionMatrix(table(data$pred, data$obs))
+  print(cm)
+  cm$byClass
+}
+
 # control object for k-fold cross validation
-ctrl <- trainControl(method = "cv", number = 10)
+ctrl <- trainControl(method = "cv", number = 10, summaryFunction = cfm)
 ```
 
 ## 3.1 LDA
@@ -357,7 +359,46 @@ lr_model <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+ke
 summary(lr_model)
 ```
 
-### 3.2.1 Logistic Regression Assumptions
+```{r}
+# Average confusion matrix
+lr_0_0 <- c(37651, 37628, 37658,37714,37742, 37672, 37650,37703,37709,37696)
+lr_0_1 <- c(11317, 11263, 11294, 11318,11236,11181,11225, 11265,11197,11285)
+lr_1_0 <- c(1537, 1559, 1529, 1473, 1445,1515,1537, 1484, 1478, 1491)
+lr_1_1 <- c(2492, 2546, 2515, 2491, 2573, 2628,2584,2543,2611,2523)
+lr_conf_matrix <- data.frame("Predicted 0, Actual 0"= mean(lr_0_0), "Predicted 0, Actual 1" = mean(lr_0_1), "Predicted 1, Actual 0" = mean(lr_1_0), "Predicted 1, Actual 1" = mean(lr_1_1))
+paste("Type 1 Error:", (lr_conf_matrix[1,3]/sum(lr_conf_matrix[1,]))*100,"%")
+paste("Type 2 Error:", (lr_conf_matrix[1,2]/sum(lr_conf_matrix[1,]))*100,"%")
+```
+
+We believe that in our case, type 1 error is the more important error, as that means our model predicts a song to be a hit but actually in not a hit. In this case, if someone were to use our model with the goal of making a hit song on Spotify, they would waste their time and error to make a song that fails. In other words, type 1 error results in wasted resources while type 2 error does not.
+
+### Balanced Logistic Regression
+
+Due to the way we classified "Hit" and "No Hit", we believe there may be an imbalance of the labels in our data which is affecting our model. We will correct this by adding another to the control object that will account for this.
+
+```{r}
+ctrl_balanced <- trainControl(method = "cv", number = 10, summaryFunction = cfm, sampling="down")
+```
+
+Running our balanced logistic regression:
+
+```{r}
+lr_model_balanced <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, method = "glm", trControl = ctrl_balanced, family="binomial")
+
+summary(lr_model_balanced)
+```
+
+```{r}
+lrb_0_0 <- c(25612,25792,25919,25764  , 25677, 25788,25582,25705,25674,25871)
+lrb_0_1 <- c(4280,4201,4349,4084,4207,4159, 4216,4211, 4280,4277)
+lrb_1_0 <- c(13575,13395, 13268,13423,13510,13399,13606,13482, 13513,13316)
+lrb_1_1 <- c(9529,9608, 9459,9725,9602,9650,9593,9597,9529, 9531)
+lrb_conf_matrix <- data.frame("Predicted 0, Actual 0"= mean(lrb_0_0), "Predicted 0, Actual 1" = mean(lrb_0_1), "Predicted 1, Actual 0" = mean(lrb_1_0), "Predicted 1, Actual 1" = mean(lrb_1_1))
+paste("Type 1 Error:", (lrb_conf_matrix[1,3]/sum(lrb_conf_matrix[1,]))*100,"%")
+paste("Type 2 Error:", (lrb_conf_matrix[1,2]/sum(lrb_conf_matrix[1,]))*100,"%")
+```
+
+### 3.2.2 Logistic Regression Assumptions
 
 Absence of Multicolinearity - Variance Inflation Factor
 
@@ -445,17 +486,23 @@ mis_tree <- function(idx){
   print(tab)
   
   misclass = 1 - sum(diag(tab)) / sum(tab)
+  type_1 = tab[1,2]/sum(tab)
+  type_2 = tab[2,1]/sum(tab)
   print(misclass)
+  print(type_1)
+  print(type_2)
   return(misclass)
 
 }
 
 misclass_tree = lapply(strat_folds, mis_tree)
 
-"The mean misclassification:"
-mean(as.numeric(misclass_tree))
+
+paste("Mean Misclassification:", mean(as.numeric(misclass_tree)))
+paste("Mean Type 1 Error:", 0.23587)
+paste("Mean Type 2 Error:", 0.011507)
 ```
-The results of the 10 k-fold cross validation echoed the results of the training set. The mean misclassification was 0.2474. This is a higher misclassification than the the logisitic regression model, and therefore the classification tree is not recommended. 
+The results of the 10 k-fold cross validation echoed the results of the training set. The mean misclassification was 0.2474. This is a higher misclassification than the the logistic regression model, and therefore the classification tree is not recommended. 
 
 ```{r}
 tree_model_class <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
@@ -468,7 +515,29 @@ plot(tree_model_class)
 ```
 
 
-### 3.3.1 Classification Tree Assumptions
+### 3.3.1 Balanced Classification Tree 
+
+```{r include=FALSE}
+tree_model_class_balanced <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl_balanced, method = "rpart")
+
+print(tree_model_class_balanced)
+```
+
+```{r}
+plot(tree_model_class_balanced)
+```
+
+```{r}
+ctb_0_0 <- c(26717,24768,23068,27574,24605,23072,26974,24531, 22840,27526, 25851)
+ctb_0_1 <- c(5017,4501,4347,5249,4401,4372, 4820,4236,4133, 5114, 4643)
+ctb_1_0 <- c(12470,14419,16119,11613,14582,16115,12213,14656 ,16347, 11662, 13337)
+ctb_1_1 <- c(8792,9308,9462,8560,9408, 9437, 8989,9573,9676, 8695, 9166)
+ctb_conf_matrix <- data.frame("Predicted 0, Actual 0"= mean(ctb_0_0), "Predicted 0, Actual 1" = mean(ctb_0_1), "Predicted 1, Actual 0" = mean(ctb_1_0), "Predicted 1, Actual 1" = mean(ctb_1_1))
+paste("Type 1 Error:", (ctb_conf_matrix[1,3]/sum(ctb_conf_matrix[1,]))*100,"%")
+paste("Type 2 Error:", (ctb_conf_matrix[1,2]/sum(ctb_conf_matrix[1,]))*100,"%")
+```
+
+### 3.3.2 Classification Tree Assumptions
 
 For tree methods, we do not have any assumptions to test besides our observations being independent of each other, which they are.
 
