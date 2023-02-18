@@ -1,17 +1,17 @@
 # DATA-606-Final-Project
 DATA 606 - Statistical Methods in Data Science
 
-## ATP Tennis Analytics Project
+## Spotify Classification Project
 
 This repository contains a group project for DATA 606 - Statistical Methods in Data Science at the University of Calgary's Master of Data Science and Analytics program. The project analyzes an ATP Tennis Dataset to uncover factors that influence wins and losses in professional tennis using advanced statistical methods such as logistic regression.
 
 ### Objectives
-- To explore and analyze the ATP Tennis Dataset with statistics on all ATP singles, doubles, challenges, and futures matches.
-- To model factors that influence wins and losses in professional tennis using logistic regression.
+- To explore and analyze the Spotify Tracks Dataset.
+- To model factors that influence the populatiry of a song using logistic regression and decisions tree.
 - To demonstrate the ability of data science/analytics in gaining a deeper understanding of complex interactions in the world around us.
 
 ### Benefits
-The results of this project will provide valuable insights for coaches and players in professional tennis, as well as those betting on game outcomes. Additionally, this project will add to the body of research and evidence that data science and analytics can be used to gain a deeper understanding of complex interactions in various industries.
+The results of this project will provide valuable insights musicians who are looking to make popular music on spotify. Additionally, this project will add to the body of research and evidence that data science and analytics can be used to gain a deeper understanding of complex interactions in various industries.
 
 ### Requirements
 In order to run the code in this repository, you will need to have the following software installed:
