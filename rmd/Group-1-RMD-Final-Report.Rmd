@@ -652,7 +652,9 @@ For tree methods, we do not have any assumptions to test besides our observation
 
 # 7 Appendix
 
-## 7.1 Gender Classification
+## 7.1 Genre Classification
+  One future work item we considered in our project work and mentioned in our class presentation was trying to classify songs into genres based on their other classification attributes. The section below provides the code to prepare the data for genre-focused analysis and run classification methods.
+  
 ```{r}
 #clean the artists to those with only one genre and of the primary genre types
 
