@@ -460,7 +460,7 @@ tree.class <- tree(popularity_coded ~ duration_ms+explicit+danceability+energy+k
 summary(tree.class)
 
 plot(tree.class)
-text(tree.class, cex=1.5, col="black")
+text(tree.class, cex=1.0, col="black")
 ```
 As shown in the plot, the tree produced with default setting was very simple. It contained only 3 terminal nodes and only used "loudness" and "explicit" to perform the classification. The misclassification rate was determined with the 20% test data as shown below:
 
@@ -478,7 +478,7 @@ The misclassification rate was found to be 0.285. Since the tree was already ver
 
 ```{r classification tree cv tree complexity}
 cv.class = cv.tree(tree.class)
-plot(cv.class$size, cv.class$dev, type='b', cex.main=1.5, cex.lab=1.5, cex.axis=1.5)
+plot(cv.class$size, cv.class$dev, type='b', cex.main=1.0, cex.lab=1.0, cex.axis=1.0)
 ```
 
 Now that the tree complexity has been determined, we used 10 k fold cross-validation to determine the mean misclassification. To perform this cross-validation, 10 folds were produced which were stratified on "hit" or "no hit" i.e, "popularity_coded". 
@@ -655,7 +655,11 @@ For tree methods, we do not have any assumptions to test besides our observation
 ## 7.1 Genre Classification
   One future work item we considered in our project work and mentioned in our class presentation was trying to classify songs into genres based on their other classification attributes. The section below provides the code to prepare the data for genre-focused analysis and run classification methods.
   
-```{r}
+In the code chunks below, the "genre" data which exists in the "artists" data needs to be merged with the "track" data so each track has a genre classification. 
+
+The difficulty with this dataset is that the "track" data did not have it's own genre.  It is possible for an artist to produce songs in different genres, and since we did not have data at the track level, the decision was made to filter out artists who fall into multiple genres. For example, an artist who produces rock and rap will not be included in this data. This introduces some bias to the data, and for future work it would be optimal to find a data source which has genres already assigned on a track level, instead of relying on the genre of the artist. 
+  
+```{r remove artists with multiple genres}
 #clean the artists to those with only one genre and of the primary genre types
 
 artist_genres <- artists_df %>%
@@ -687,10 +691,10 @@ artist_genres <- artists_df %>%
                                            disco == 1 ~ "disco")) %>%
                 dplyr::select(id, genre, name, popularity)
 ```
+"
+After preparing the "artists" data as shown above, the next step is to clean up the "tracks" data so that the artist column can be read as a list.
 
-
-
-```{r}
+```{r clean strings of genres}
 #clean the track artist lists
 rep_str = c("\\[" = "", "\\]"="", "'"="")
 
@@ -700,17 +704,19 @@ track_artists$id_artists <- as.list(track_artists$id_artists)
   
 ```
 
+Finally, the artist data is merged with the tracks data. This is an inner join, resulting in tracks that only have one genre assigned.
 
-
-```{r}
+```{r merge tracks with artists}
 #inner join so only the artists with single genre remain alongsige the track data
-genre_tracks <- merge(x=artist_genres, y=track_artists, by.x="id", by.y="id_artists")
+genre_tracks <- merge(x=artist_genres, y=track_artists, by.x="id", by.y="id_artists") %>%  dplyr::select(id:time_signature)
 
 colnames(genre_tracks)
-colnames(genre_tracks) <- c("artist_id", "genre", "artist_name", "artist_popularity", "song_id", "song_name", "song_popularity", "duration_ms", "explicit", "artists", "release_date", "danceability", "energy", "key", "loudness", "mode", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "time_signature", "year", "decade" )
+colnames(genre_tracks) <- c("artist_id", "genre", "artist_name", "artist_popularity", "song_id", "song_name", "song_popularity", "duration_ms", "explicit", "artists", "release_date", "danceability", "energy", "key", "loudness", "mode", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "time_signature")
 
 ```
 
+
+Next, the data is grouped by genre as a stata to facilitate splitting for train and test. 150000 observations were used for training to roughly target 75%  (actually 73%). Below, the count of the strata can be seen.
 
 ```{r}
 #count the strata to understand what should be used to test/train
@@ -722,14 +728,16 @@ order
 
 strata <- genre_tracks %>% 
             count(genre) %>% 
-            rename(Nh = n) %>%
-            mutate(nh = round(Nh*n/N)) %>%
+            rename(all = n) %>%
+            mutate(train = round(all*n/N)) %>%
             slice(match(order, genre))
 strata
 
-strata_sizes <- strata$nh
+strata_sizes <- strata$train
 
 ```
+
+The data is split into test and train:
 
 ```{r}
 #perform the stratified sample
@@ -738,6 +746,8 @@ train_genre <- genre_tracks[idx_strat$ID_unit,]
 test_genre <- genre_tracks[-idx_strat$ID_unit,]
 
 ```
+
+Now the classification tree can be built with the training data:
 
 ```{r}
 #build tree genre
@@ -748,12 +758,31 @@ plot(tree.genre)
 text(tree.genre, cex=0.5, col="blue")
 ```
 
+The mislclassification rate for the tree on the test data is found as shown below:
+
+```{r}
+#test the tree misclass
+
+tree.pred <- predict(tree.genre, test_genre, type = "class")
+
+tab <- table(tree.pred, test_genre$genre)
+tab
+
+mis = 1 - sum(diag(tab)) / sum(tab)
+mis
+```
+The performance of the tree is 0.4181 misclassification. It can be seen that the tree does not preduct many of the genres well. Genres such as "blues", "classicial" and country have no correct predictions. This could be related to the imbalanced dataset (high pop), or difficulty in drawing clear lines between the genres in general. 
+
+Although the assumptions for LDA were not met, as seen in the main body of the report, the LDA exercise was performed for completenes:
+
 ```{r}
 #build lda genre
 lda.genre <- lda(factor(genre)~duration_ms+factor(explicit)+danceability+energy+factor(key)+loudness+factor(mode)+speechiness+acousticness+instrumentalness+liveness+valence+tempo, train_genre)
 lda.genre
 
 ```
+
+The misclassification for the LDA was 0.3894. This is in the same range as the tree; both models requires more work to improve the result. 
 
 ```{r}
 #test the lda misclass
