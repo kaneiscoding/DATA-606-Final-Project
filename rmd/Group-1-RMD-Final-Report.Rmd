@@ -114,6 +114,7 @@ The most important part of cleaning the data was changing variables that were me
 
 ### histogram
 
+Here below we are showing the distribution of our target variable, "popularity".
 ```{r histograms}
 tracks_pop <- ggplot(data=tracks_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
 artists_pop <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
@@ -122,6 +123,7 @@ tracks_pop
 artists_pop
 ```
 
+As we can see there are many data points with popularity=0, for that case we decided to eliminate those data points and try to normalize it. 
 ```{r filter and normalize}
 # Filter out tracks with popularity less than 1
 popular_df <- tracks_df %>% filter(popularity > 1)
@@ -135,7 +137,7 @@ popular_factors <- lapply(popular_factors,factor)
 popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
 ```
 
-
+We can observe a chi-squared distribution for the filtered ans scaled value of "popularity".
 ```{r filtered histogram}
 # Visualize filtered tracks popularity histogram 
 tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
@@ -226,7 +228,9 @@ plt4 <- ggplot(tracks_clean, aes(x = factor(decade), y = duration_ms)) +
 grid.arrange(plt1, plt2, plt3, plt4, top = "Variation by Decade", ncol = 2)
 ```
 
-
+### Correlation Matrix
+- Strongest positive correlation between loudness and energy.
+- Strongest negative correlation energy and acousticness
 ```{r correlation plot}
 
 # Calculate the correlation matrix
