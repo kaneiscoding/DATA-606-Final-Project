@@ -39,13 +39,16 @@ library(stringr)
 
 # 1 Introduction
 
+
 ## 1.1 Background
 
 Spotify is the world’s most popular subscription service for audio streaming. Spotify claims 489 million users, of which 205 million users are Spotify Premium subscribers(1). Spotify has an extensive library of music tracks and gathers data about the music in order to better recommend songs to users, and makes this data available through a web API(2). By analyzing this data, we hope to gain insights into how characteristics of different songs and the artists who created them affect the popularity of the songs. We also aim to explore other trends and relationships within the data, such as whether we can predict the genre of a song based on characteristics such as loudness and musical key. This analysis could potentially be used to identify what factors make songs popular and help artists create music that will be commercially successful (if that is their goal). It may also expose other findings that would be interesting to a general audience of music consumers.
 
+
 ## 1.2 Problem & Topic Importance
 
 The music industry is in a constant state of evolution, and the popularity of a song can play a significant role in an artist's success. With an abundance of music being produced and released, it can be challenging to predict which songs will achieve popularity. Considering this environment, there is a growing need for a more scientifically informed understanding of the factors that contribute to a song's popularity. Although virality cannot always be predicted, it can be influenced, and record labels and streaming services can benefit greatly from affiliation with viral hits. By understanding the factors that contribute to popularity and identifying them in new songs and artists, they can make informed decisions on music production and marketing strategies.
+
 
 ## 1.3 Data Source
 
@@ -54,6 +57,7 @@ For this project, we used a Kaggle dataset that offers consolidated data from th
 The "Tracks" “csv” contains information for approximately 600,000 musical tracks available on Spotify. Features include "popularity" as well as a multitude of attributes to describe the character of the music itself i.e, "loudness" score and "danceability" score. The "Artists" csv contains additional data, specifically about the artist such as the list of genre's associated with that artist.
 
 Usage of the dataset is governed by the Community Data License Agreement, which grants: "... a worldwide, non-exclusive, irrevocable (except as provided in Section 5) right to: (a) Use Data; and (b) Publish Data." (4)
+
 
 ## 1.4 Summary of Variables
 
@@ -93,6 +97,7 @@ As data becomes an increasingly crucial tool in the music industry, many music p
 
 This project's purpose is to analyze the features of songs (as listed in the “Summary of Variables” section above) and to develop multiple statistical models to determine the relevance of these features to a song's popularity. This analysis will provide valuable insights into the music industry and inform artists, music producers, and industry professionals on how to make informed decisions to increase the popularity of their music.
 
+\pagebreak
 
 # 2 Preliminary Analyses
 
@@ -101,6 +106,7 @@ This project's purpose is to analyze the features of songs (as listed in the “
 The dataset was already very clean when it was downloaded, but we still did validation to ensure that everything was good before we began an exploratory analysis and modeling. We started by looking for counts of NAs and duplicate values which there were none. Next, we checked the dimensions of our data frame; there are 22 variables and 529,958 rows. 
 
 The most important part of cleaning the data was changing variables that were meant to be factors (explicit, key, mode, time_signature) as factors instead of integers. The other important was to normalize our continuous features using mean normalization to potentially improve the performance of our models and to allow us to use linear discriminant analysis. 
+
 
 ## 2.2 Visual Investigation
 
@@ -112,6 +118,8 @@ The most important part of cleaning the data was changing variables that were me
 tracks_pop <- ggplot(data=tracks_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
 artists_pop <- ggplot(data=artists_df, aes(x=popularity), title="Full Artists Dataset Popularity Histogram") + geom_histogram()
 
+tracks_pop
+artists_pop
 ```
 
 ```{r filter and normalize}
@@ -127,6 +135,7 @@ popular_factors <- lapply(popular_factors,factor)
 popular_df2 <- data.frame(popular_labels, popular_factors, popular_scaled)
 ```
 
+
 ```{r filtered histogram}
 # Visualize filtered tracks popularity histogram 
 tracks_pop_filtered <- ggplot(data=popular_df, aes(x=popularity), title="Full Tracks Dataset Popularity Histogram") + geom_histogram()
@@ -137,6 +146,7 @@ tracks_pop_filtered
 tracks_pop_scaled
 #artists_pop_filtered
 ```
+
 
 ### Correlation Matrix
 
@@ -231,6 +241,7 @@ ggcorrplot(cor_matrix,
            )
 ```
 
+
 ### Popularity and Hit Boxplots
 
 To begin investigating the idea that *popularity* could be related to features which describe the character of the music, it would be useful to do some preliminary visual exploration of those features. 
@@ -243,6 +254,7 @@ box2 <- ggplot(data = tracks_df, aes(x=factor(explicit), y=popularity, fill=fact
 grid.arrange(box1, box2, ncol = 2, top="Boxplots of Categorical Factors vs. Popularity")
 
 ```
+
 It can be seen that the interquartile range of "popularity" appears to be different for songs flagged as explicit. For the song "key", there may be differences but they are not as obvious in this visual. 
 
 In addition to predicting the numerical value of popularity, another opportunity is to predict if a song is a "hit" or not (i.e., predict if the song's popularity will be in the top quartile). By framing in the problem this binary way, we will have an opportunity to investigate more potential models (such as logistiic regression). Additionally, some people might find more meaning in a clear simple, classification such as "hit" and "no hit".
@@ -266,6 +278,7 @@ box6 <- ggplot(data = quart_pop, aes(x=hit, y=liveness, fill=hit)) + geom_boxplo
 grid.arrange(box1, box2, box3, box4, box5, box6, ncol = 3, top="Boxplots of Features vs. Hit")
 ```
 
+
 At least visually it appears that some of these features could be useful in predicting which tracks are a hit. For example, the mean of "loudness" and "energy" appear to be higher for "hit" than "no_hit". On the other hand, some of these features don't seem to have such an obvious relationship in this visual; the means and interquartile ranges for the tempo plot do not appear to be so different between "hit" and "no hit". 
 
 
@@ -283,10 +296,11 @@ train = popular_df2[idx,]
 test = popular_df2[-idx,]
 ```
 
+\pagebreak
+
 # 3 Classification of Target Variable - Hit or Not?
 
 As we have stated, the dependent variable that we are using to assess if a song will be classified as a hit is “popularity,” a score from 0 to 100 that ranks how popular an artist is relative to other artists on the platform. To use this variable in classification problems, we decided to code it, “1” means that the song is a hit, “0” indicates that the song is not a hit; the threshold used to make the division was the 75th percentile in the popularity column, everything below the 75th percentile is considered “not hit”, the rest is considered a “hit”.
-
 
 ```{r}
 popular_df2 <- popular_df2 %>% mutate(popularity_coded = ifelse(popularity >= quantile(popular_df2$popularity, c(.75))[1], 1, 0))
@@ -305,7 +319,10 @@ cfm <- function(data, lev = NULL, model = NULL) {
 ctrl <- trainControl(method = "cv", number = 10, summaryFunction = cfm)
 ```
 
+
 ## 3.1 LDA
+
+Type of Supervised Learning algorithm to commonly used for either binary or multi-class classification problems or as a dimension reduction tool. Using K-fold Cross Validation to divide the normalized dataset in 10 folds, we train and test our model multiple times.  
 ```{r}
 #fit a regression model and use k-fold CV to evaluate performance
 lda_model <- train(popularity_coded~duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data=popular_df2, method = "lda", trControl = ctrl)
@@ -349,6 +366,9 @@ popular_sample2 = popularity_var_test[idx,]
 leveneTest(popularity~., data = popular_sample2)
 ```
 
+Despite that our model obtained an Accuracy value of 0.756, we decided not to use this model as it failed both assumptions needed, the Multivariate Normality and Equality of Variances. No QDA model used, as the Multivariate Normality assumption was not met.
+
+
 
 ## 3.2 Logistic Regression
 
@@ -371,6 +391,7 @@ paste("Type 2 Error:", (lr_conf_matrix[1,2]/sum(lr_conf_matrix[1,]))*100,"%")
 ```
 
 We believe that in our case, type 1 error is the more important error, as that means our model predicts a song to be a hit but actually in not a hit. In this case, if someone were to use our model with the goal of making a hit song on Spotify, they would waste their time and error to make a song that fails. In other words, type 1 error results in wasted resources while type 2 error does not.
+
 
 ### Balanced Logistic Regression
 
@@ -398,6 +419,9 @@ paste("Type 1 Error:", (lrb_conf_matrix[1,3]/sum(lrb_conf_matrix[1,]))*100,"%")
 paste("Type 2 Error:", (lrb_conf_matrix[1,2]/sum(lrb_conf_matrix[1,]))*100,"%")
 ```
 
+Using K-fold cross validation we obtained a Misclassification Rate of 24.09%.
+
+
 ### 3.2.2 Logistic Regression Assumptions
 
 Absence of Multicolinearity - Variance Inflation Factor
@@ -408,6 +432,7 @@ model_fit<-lm(popularity~duration_ms+factor(explicit)+ danceability+energy+facto
 
 vif(model_fit)
 ```
+Using the VID function we checked for Multicolinearity, no major issues found, the only variable that has a high VIF value is "energy", as its less than 5 no changes are needed. 
 
 
 Lack of Influential Outliers - Cook's Distance
@@ -417,9 +442,12 @@ Lack of Influential Outliers - Cook's Distance
 popular_df[cooks.distance(model_fit)>1,]
 ```
 
+Using Cooks Distance we detected no influential outliers, no further action is needed. 
+
+
 ## 3.3 Classification Tree
 
-To compare to the previous classification models, a classification tree was also built with the same predictor varaibles. As with the other models, training was done with 80% of data, and testing with the remaining 20%. 
+To compare to the previous classification models, a classification tree was also built with the same predictor variables. As with the other models, training was done with 80% of data, and testing with the remaining 20%. 
 
 ```{r}
 set.seed(1)
@@ -453,6 +481,7 @@ tab
 mis = 1 - sum(diag(tab)) / sum(tab)
 mis
 ```
+
 The misclassification rate was found to be 0.285. Since the tree was already very small, it was not expected that pruning would be necessary. Still, we confirmed this using cross-validation to choose tree complexity. The chart shown below confirms the suspicion that 3 terminal nodes is optimal for this case; reducing terminal nodes would reduce model performance.
 
 ```{r classification tree cv tree complexity}
@@ -502,6 +531,7 @@ paste("Mean Misclassification:", mean(as.numeric(misclass_tree)))
 paste("Mean Type 1 Error:", 0.23587)
 paste("Mean Type 2 Error:", 0.011507)
 ```
+
 The results of the 10 k-fold cross validation echoed the results of the training set. The mean misclassification was 0.2474. This is a higher misclassification than the the logistic regression model, and therefore the classification tree is not recommended. 
 
 ```{r}
@@ -517,9 +547,12 @@ plot(tree_model_class)
 
 ### 3.3.1 Balanced Classification Tree 
 
+Using the same logic as in the Logistic Regression, we decided to Balance our Tree. 
 ```{r include=FALSE}
 tree_model_class_balanced <- train(popularity_coded ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl_balanced, method = "rpart")
+```
 
+```{r}
 print(tree_model_class_balanced)
 ```
 
@@ -541,6 +574,7 @@ paste("Type 2 Error:", (ctb_conf_matrix[1,2]/sum(ctb_conf_matrix[1,]))*100,"%")
 
 For tree methods, we do not have any assumptions to test besides our observations being independent of each other, which they are.
 
+
 ## 4.4 Regression Tree
 Is a supervised learning statistical model where the target variable can take continuous values. We use the model to predict the popularity score for each of the songs, using all other variables as predictors, first we divide the data into training and testing using simple random sampling, we used 80% of the data as training and 20% as testing. 
 
@@ -559,6 +593,7 @@ print(sqrt(mean((popularity_tree_predict - test$popularity)^2)))
 print('Mean')
 print(mean(popular_df2$popularity))
 ```
+
 Here below we can observe the regression tree plotted. 
 ```{r}
 plot(popularity_tree_fit)
@@ -572,12 +607,13 @@ plot(cv.popularity$size, cv.popularity$dev,type='b')
 
 ```
 
-Lastly, we did k-fold cross validation to see if we see an improvement. The RMSE obtained is very similar to the previous value, meaning that this model is not very useful to obtain the real value of popularity. 
+Lastly, we did k-fold cross validation to see if we see an improvement. The RMSE obtained is very similar to the previous value, meaning that this model is not very accurate to obtain the real value of popularity. 
 ```{r}
-tree_model_reg <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df2, trControl = ctrl, method = "rpart")
-print(tree_model_reg)
-```
+ctrl <- trainControl(method = "cv", number = 10)
 
+tree_model <- train(popularity ~ duration_ms+explicit+danceability+energy+key+loudness+mode+speechiness+acousticness+instrumentalness+liveness+valence+tempo+time_signature, data = popular_df, trControl = ctrl, method = "rpart")
+print(tree_model)
+```
 
 
 ### 3.4.1 Assumptions
@@ -588,7 +624,31 @@ For tree methods, we do not have any assumptions to test besides our observation
 
 ## 4 Summary of Findings
 
+- LDA model was not valid based on assumptions​
+
+- Regression Tree only capable of predicting popularity scores of 20,30,40,50 with RMSE of 15. 'Hit' defined as >42.  Would like to see some terminal nodes closer to 100.​
+
+- Classification tree and Logistic Regression produced similar misclassification rates​
+  - Unbalanced: ~24%​
+  - Balanced: ~33%​
+
+- Balancing the classification tree improved the feature space beyond loudness and explicitness, but had poorer performance overall. ​
+
+
 # 5 Conclusion
+
+- Logistic regression was our most useful model​
+
+- Balancing our target variable in classification models decreased performance! But told us more?​
+
+- Some concern that misclassification percentage matched class proportions in unbalanced models​
+
+- Potentially useful information for musicians, producers, and industry professionals ​
+
+- Further analysis would require scraping actual song data that is not produced by Spotify,  providing more granular data.​
+
+- Further analysis to be conducted into predictability of genre from these features​
+
 
 # 6 References
 
