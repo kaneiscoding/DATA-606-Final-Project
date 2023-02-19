@@ -650,6 +650,9 @@ For tree methods, we do not have any assumptions to test besides our observation
 4.	https://cdla.dev/sharing-1-0/
 
 
+# 7 Appendix
+
+## 7.1 Gender Classification
 ```{r}
 #clean the artists to those with only one genre and of the primary genre types
 
