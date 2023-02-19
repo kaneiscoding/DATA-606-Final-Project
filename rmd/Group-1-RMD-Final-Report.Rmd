@@ -183,7 +183,6 @@ ggplot(tracks_df, aes(x = factor(year), y = popularity)) +
 
 ggplot(tracks_df, aes(x = factor(decade), y = popularity)) + 
   geom_bar(stat = "summary", fun = "mean")
-#+ guide_axis()
 ```
 
 ```{r}
@@ -195,18 +194,7 @@ ggplot(tracks_df, aes(x = factor(decade), y = energy)) +
 ```
 
 ```{r}
-# tracks_190 <- filter(tracks_df, filter = tracks_df$decade == "190") this line did not knit
-```
-
-```{r}
-# dim(tracks_190)
-```
-
-```{r}
-tracks_df[478628,]
-```
-
-```{r}
+# Remove one record with date value of 1900-01-01 to clean up the decade plots
 tracks_clean <- tracks_df[-478628,]
 ```
 
